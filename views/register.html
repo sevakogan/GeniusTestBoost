@@ -38,6 +38,7 @@
           <option value="student">Student</option>
           <option value="teacher">Teacher</option>
         </select>
+        <small class="role-note hidden" id="teacherNote">Teacher accounts require admin approval before you can create courses.</small>
       </div>
 
       <div class="form-group">
@@ -62,6 +63,13 @@
     const form = document.getElementById('registerForm');
     const errorMsg = document.getElementById('errorMsg');
     const registerBtn = document.getElementById('registerBtn');
+
+    // Show teacher note when teacher role is selected
+    document.getElementById('role').addEventListener('change', (e) => {
+      const note = document.getElementById('teacherNote');
+      if (e.target.value === 'teacher') note.classList.remove('hidden');
+      else note.classList.add('hidden');
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();

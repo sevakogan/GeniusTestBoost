@@ -32,9 +32,12 @@ router.post('/register', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Allowed roles
+    // Allowed roles (master_teacher cannot self-register)
     const allowedRoles = ['student', 'teacher'];
     const userRole = allowedRoles.includes(role) ? role : 'student';
+
+    // Teachers need admin approval, students are auto-approved
+    const isApproved = userRole === 'student';
 
     // Insert user
     const { data: newUser, error } = await supabase
@@ -44,7 +47,8 @@ router.post('/register', async (req, res) => {
         last_name: lastName,
         email,
         password: hashedPassword,
-        role: userRole
+        role: userRole,
+        is_approved: isApproved
       })
       .select()
       .single();
@@ -60,7 +64,8 @@ router.post('/register', async (req, res) => {
       firstName,
       lastName,
       email,
-      role: userRole
+      role: userRole,
+      isApproved
     };
 
     res.json({ success: true, redirect: '/dashboard' });
@@ -102,7 +107,8 @@ router.post('/login', async (req, res) => {
       firstName: user.first_name,
       lastName: user.last_name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      isApproved: user.is_approved
     };
 
     res.json({ success: true, redirect: '/dashboard' });

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Dashboard — GeniusTestBoost</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="dash-nav">
+    <div class="dash-nav-inner">
+      <a href="/dashboard" class="dash-logo">Genius<span>TestBoost</span></a>
+      <div class="dash-nav-right">
+        <a href="/messages" class="dash-nav-link">Messages <span id="msg-badge" class="badge hidden">0</span></a>
+        <div class="dash-user">
+          <span id="userName"></span>
+          <span class="role-badge teacher">Teacher</span>
+          <button id="logoutBtn" class="btn-ghost-sm">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dash-main">
+    <!-- Approval Banner -->
+    <div class="alert-warning hidden" id="approvalBanner">
+      <strong>Account Pending Approval</strong>
+      <p>Your account is waiting for admin approval. You cannot create courses until approved.</p>
+    </div>
+
+    <!-- Stats -->
+    <section class="dash-section">
+      <h2>Welcome back, <span id="firstName"></span></h2>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="statCourses">0</div><div class="stat-label">My Courses</div></div>
+        <div class="stat-card"><div class="stat-num" id="statStudents">0</div><div class="stat-label">Total Students</div></div>
+        <div class="stat-card"><div class="stat-num" id="statAssignments">0</div><div class="stat-label">Assignments</div></div>
+        <div class="stat-card accent"><div class="stat-num" id="statPending">0</div><div class="stat-label">Needs Grading</div></div>
+      </div>
+    </section>
+
+    <!-- My Courses -->
+    <section class="dash-section">
+      <div class="section-header">
+        <h2>My Courses</h2>
+        <button class="btn-primary" id="createCourseBtn" onclick="showCreateCourse()">+ New Course</button>
+      </div>
+      <div id="coursesList" class="card-grid">
+        <p class="empty-msg">No courses yet. Create your first course!</p>
+      </div>
+    </section>
+
+    <!-- Pending Grading -->
+    <section class="dash-section">
+      <h2>Submissions Needing Grades</h2>
+      <div id="pendingGrades" class="card-list">
+        <p class="empty-msg">No submissions to grade</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Create Course Modal -->
+  <div class="modal-overlay hidden" id="courseModal">
+    <div class="modal">
+      <h3 id="courseModalTitle">Create Course</h3>
+      <form id="courseForm">
+        <input type="hidden" id="courseEditId">
+        <div class="form-group"><label>Course Name</label><input type="text" id="courseName" class="input" required></div>
+        <div class="form-group"><label>Subject</label><input type="text" id="courseSubject" class="input" placeholder="e.g. SAT Math, ACT Science"></div>
+        <div class="form-group"><label>Description</label><textarea id="courseDesc" class="input textarea" rows="3"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    async function init() {
+      const res = await fetch('/api/user');
+      if (!res.ok) { window.location.href = '/login'; return; }
+      currentUser = await res.json();
+      document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+      document.getElementById('firstName').textContent = currentUser.firstName;
+
+      if (!currentUser.isApproved) {
+        document.getElementById('approvalBanner').classList.remove('hidden');
+        document.getElementById('createCourseBtn').disabled = true;
+        document.getElementById('createCourseBtn').classList.add('btn-disabled');
+      }
+
+      await Promise.all([loadCourses(), loadPendingGrades(), loadUnread()]);
+    }
+
+    async function loadCourses() {
+      const res = await fetch('/api/courses');
+      const courses = await res.json();
+      const el = document.getElementById('coursesList');
+
+      let totalStudents = 0;
+      let totalAssignments = 0;
+
+      if (!courses.length) {
+        el.innerHTML = '<p class="empty-msg">No courses yet. Create your first course!</p>';
+      } else {
+        el.innerHTML = courses.map(c => {
+          totalStudents += c.enrollment_count || 0;
+          totalAssignments += c.assignment_count || 0;
+          return `
+            <div class="course-card">
+              <div class="course-card-header">
+                <h3><a href="/course/${c.id}">${c.name}</a></h3>
+                ${c.subject ? `<span class="tag-pill">${c.subject}</span>` : ''}
+              </div>
+              <p class="course-desc">${c.description || 'No description'}</p>
+              <div class="course-meta">
+                <span>${c.enrollment_count || 0} students</span>
+                <span>${c.assignment_count || 0} assignments</span>
+              </div>
+              <div class="course-actions">
+                <a href="/course/${c.id}" class="btn-ghost-sm">View</a>
+                <button class="btn-ghost-sm" onclick="editCourse('${c.id}', '${c.name}', '${c.subject || ''}', '${(c.description || '').replace(/'/g, "\\'")}')">Edit</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('statCourses').textContent = courses.length;
+      document.getElementById('statStudents').textContent = totalStudents;
+      document.getElementById('statAssignments').textContent = totalAssignments;
+    }
+
+    async function loadPendingGrades() {
+      const res = await fetch('/api/assignments/pending-grading');
+      const subs = await res.json();
+      const el = document.getElementById('pendingGrades');
+      document.getElementById('statPending').textContent = subs.length;
+
+      if (!subs.length) { el.innerHTML = '<p class="empty-msg">All submissions graded!</p>'; return; }
+
+      el.innerHTML = subs.map(s => `
+        <div class="list-item">
+          <div class="list-item-info">
+            <strong>${s.student ? s.student.first_name + ' ' + s.student.last_name : 'Unknown'}</strong>
+            <span>${s.assignment ? s.assignment.title : 'Unknown assignment'}</span>
+            <small>${s.course_name} • Submitted ${new Date(s.submitted_at).toLocaleDateString()}</small>
+          </div>
+          <div class="list-item-actions">
+            <a href="/assignment/${s.assignment_id}" class="btn-primary-sm">Grade</a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadUnread() {
+      const res = await fetch('/api/messages/unread-count');
+      const data = await res.json();
+      const badge = document.getElementById('msg-badge');
+      if (data.count > 0) { badge.textContent = data.count; badge.classList.remove('hidden'); }
+    }
+
+    function showCreateCourse() {
+      if (!currentUser.isApproved) { alert('Your account must be approved first.'); return; }
+      document.getElementById('courseModalTitle').textContent = 'Create Course';
+      document.getElementById('courseEditId').value = '';
+      document.getElementById('courseName').value = '';
+      document.getElementById('courseSubject').value = '';
+      document.getElementById('courseDesc').value = '';
+      document.getElementById('courseModal').classList.remove('hidden');
+    }
+
+    function editCourse(id, name, subject, desc) {
+      document.getElementById('courseModalTitle').textContent = 'Edit Course';
+      document.getElementById('courseEditId').value = id;
+      document.getElementById('courseName').value = name;
+      document.getElementById('courseSubject').value = subject;
+      document.getElementById('courseDesc').value = desc;
+      document.getElementById('courseModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('courseModal').classList.add('hidden');
+    }
+
+    document.getElementById('courseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('courseEditId').value;
+      const body = {
+        name: document.getElementById('courseName').value,
+        subject: document.getElementById('courseSubject').value,
+        description: document.getElementById('courseDesc').value
+      };
+
+      if (id) {
+        await fetch(`/api/courses/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      } else {
+        await fetch('/api/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      }
+      closeModal();
+      await loadCourses();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+
+    init();
+  </script>
+</body>
+</html>

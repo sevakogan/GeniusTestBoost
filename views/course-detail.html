@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course — GeniusTestBoost</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="dash-nav">
+    <div class="dash-nav-inner">
+      <a href="/dashboard" class="dash-logo">Genius<span>TestBoost</span></a>
+      <div class="dash-nav-right">
+        <a href="/dashboard" class="dash-nav-link">Dashboard</a>
+        <a href="/messages" class="dash-nav-link">Messages</a>
+        <button id="logoutBtn" class="btn-ghost-sm">Sign Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dash-main">
+    <div class="breadcrumb">
+      <a href="/dashboard">Dashboard</a> / <span id="courseName">Course</span>
+    </div>
+
+    <!-- Course Header -->
+    <section class="dash-section">
+      <div class="course-header">
+        <div>
+          <h1 id="courseTitle">Loading...</h1>
+          <p id="courseDesc" class="course-desc"></p>
+          <div class="course-meta">
+            <span id="courseTeacher"></span>
+            <span id="courseSubject"></span>
+            <span id="courseStudents"></span>
+          </div>
+        </div>
+        <div id="courseHeaderActions"></div>
+      </div>
+    </section>
+
+    <!-- Assignments -->
+    <section class="dash-section">
+      <div class="section-header">
+        <h2>Assignments</h2>
+        <div id="addAssignmentBtn"></div>
+      </div>
+      <div id="assignmentsList" class="card-list">
+        <p class="empty-msg">No assignments yet</p>
+      </div>
+    </section>
+
+    <!-- Enrolled Students (teacher/admin only) -->
+    <section class="dash-section hidden" id="studentsSection">
+      <h2>Enrolled Students</h2>
+      <div id="studentsList" class="card-list">
+        <p class="empty-msg">No students enrolled</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Create Assignment Modal -->
+  <div class="modal-overlay hidden" id="assignModal">
+    <div class="modal">
+      <h3 id="assignModalTitle">Create Assignment</h3>
+      <form id="assignForm">
+        <input type="hidden" id="assignEditId">
+        <div class="form-group"><label>Title</label><input type="text" id="assignTitle" class="input" required></div>
+        <div class="form-group"><label>Description</label><textarea id="assignDesc" class="input textarea" rows="3"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Due Date</label><input type="datetime-local" id="assignDue" class="input"></div>
+          <div class="form-group"><label>Max Points</label><input type="number" id="assignPoints" class="input" value="100" min="1"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" onclick="closeAssignModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let courseId = window.location.pathname.split('/course/')[1];
+
+    async function init() {
+      const userRes = await fetch('/api/user');
+      if (!userRes.ok) { window.location.href = '/login'; return; }
+      currentUser = await userRes.json();
+
+      await loadCourse();
+    }
+
+    async function loadCourse() {
+      const res = await fetch(`/api/courses/${courseId}`);
+      if (!res.ok) { alert('Course not found'); window.location.href = '/dashboard'; return; }
+      const course = await res.json();
+
+      document.getElementById('courseName').textContent = course.name;
+      document.getElementById('courseTitle').textContent = course.name;
+      document.getElementById('courseDesc').textContent = course.description || '';
+      document.getElementById('courseTeacher').textContent = course.teacher ? `By ${course.teacher.first_name} ${course.teacher.last_name}` : '';
+      document.getElementById('courseSubject').textContent = course.subject || '';
+      document.getElementById('courseStudents').textContent = `${course.enrollment_count} students`;
+      document.title = course.name + ' — GeniusTestBoost';
+
+      // Role-specific UI
+      const role = currentUser.role;
+
+      if (role === 'student') {
+        const actionsEl = document.getElementById('courseHeaderActions');
+        if (!course.is_enrolled) {
+          actionsEl.innerHTML = `<button class="btn-primary" onclick="enrollInCourse()">Enroll in Course</button>`;
+        } else {
+          actionsEl.innerHTML = `<button class="btn-danger-sm" onclick="unenroll()">Unenroll</button>`;
+        }
+      }
+
+      if (role === 'teacher' || role === 'master_teacher') {
+        document.getElementById('addAssignmentBtn').innerHTML = `<button class="btn-primary" onclick="showCreateAssignment()">+ Add Assignment</button>`;
+        document.getElementById('studentsSection').classList.remove('hidden');
+        await loadStudents();
+      }
+
+      // Load assignments
+      renderAssignments(course.assignments || [], role);
+    }
+
+    function renderAssignments(assignments, role) {
+      const el = document.getElementById('assignmentsList');
+      if (!assignments.length) { el.innerHTML = '<p class="empty-msg">No assignments yet</p>'; return; }
+
+      el.innerHTML = assignments.map(a => {
+        const dueStr = a.due_date ? new Date(a.due_date).toLocaleDateString() : 'No due date';
+        let statusHtml = '';
+
+        if (role === 'student' && a.my_submission) {
+          if (a.my_submission.grade !== null) {
+            const pct = Math.round(a.my_submission.grade / a.max_points * 100);
+            const color = pct >= 80 ? 'success' : pct >= 60 ? 'warning' : 'danger';
+            statusHtml = `<span class="grade-display ${color}">${a.my_submission.grade}/${a.max_points}</span>`;
+          } else {
+            statusHtml = `<span class="status-pill submitted">Submitted</span>`;
+          }
+        } else if (role === 'student') {
+          statusHtml = `<span class="status-pill pending">Not submitted</span>`;
+        }
+
+        if (role === 'teacher' || role === 'master_teacher') {
+          statusHtml = `<span class="meta-text">${a.submission_count || 0} submissions • ${a.ungraded_count || 0} ungraded</span>`;
+        }
+
+        return `
+          <div class="list-item">
+            <div class="list-item-info">
+              <strong><a href="/assignment/${a.id}">${a.title}</a></strong>
+              <span>${a.description || ''}</span>
+              <small>Due: ${dueStr} • ${a.max_points} points</small>
+            </div>
+            <div class="list-item-actions">
+              ${statusHtml}
+              <a href="/assignment/${a.id}" class="btn-ghost-sm">View</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadStudents() {
+      const res = await fetch(`/api/courses/${courseId}/students`);
+      const students = await res.json();
+      const el = document.getElementById('studentsList');
+      if (!students.length) { el.innerHTML = '<p class="empty-msg">No students enrolled</p>'; return; }
+      el.innerHTML = students.map(s => `
+        <div class="list-item">
+          <div class="list-item-info">
+            <strong>${s.first_name} ${s.last_name}</strong>
+            <span>${s.email}</span>
+            <small>Enrolled ${new Date(s.enrolled_at).toLocaleDateString()}</small>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function enrollInCourse() {
+      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: 'POST' });
+      if (res.ok) { await loadCourse(); } else { const d = await res.json(); alert(d.error); }
+    }
+
+    async function unenroll() {
+      if (!confirm('Unenroll from this course?')) return;
+      await fetch(`/api/courses/${courseId}/unenroll`, { method: 'DELETE' });
+      window.location.href = '/dashboard';
+    }
+
+    function showCreateAssignment() {
+      document.getElementById('assignModalTitle').textContent = 'Create Assignment';
+      document.getElementById('assignEditId').value = '';
+      document.getElementById('assignTitle').value = '';
+      document.getElementById('assignDesc').value = '';
+      document.getElementById('assignDue').value = '';
+      document.getElementById('assignPoints').value = '100';
+      document.getElementById('assignModal').classList.remove('hidden');
+    }
+
+    function closeAssignModal() {
+      document.getElementById('assignModal').classList.add('hidden');
+    }
+
+    document.getElementById('assignForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('assignEditId').value;
+      const body = {
+        course_id: courseId,
+        title: document.getElementById('assignTitle').value,
+        description: document.getElementById('assignDesc').value,
+        due_date: document.getElementById('assignDue').value || null,
+        max_points: parseInt(document.getElementById('assignPoints').value) || 100
+      };
+
+      if (editId) {
+        await fetch(`/api/assignments/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      } else {
+        await fetch('/api/assignments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      }
+      closeAssignModal();
+      await loadCourse();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+
+    init();
+  </script>
+</body>
+</html>

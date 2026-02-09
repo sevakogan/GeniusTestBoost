@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages — GeniusTestBoost</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="dash-nav">
+    <div class="dash-nav-inner">
+      <a href="/dashboard" class="dash-logo">Genius<span>TestBoost</span></a>
+      <div class="dash-nav-right">
+        <a href="/dashboard" class="dash-nav-link">Dashboard</a>
+        <button id="logoutBtn" class="btn-ghost-sm">Sign Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="msg-layout">
+    <!-- Sidebar: Conversations -->
+    <aside class="msg-sidebar">
+      <div class="msg-sidebar-header">
+        <h3>Messages</h3>
+        <button class="btn-primary-sm" onclick="showNewMessage()">New</button>
+      </div>
+      <div id="conversationsList" class="conversations-list">
+        <p class="empty-msg">No conversations yet</p>
+      </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <div class="msg-chat">
+      <div class="msg-chat-header" id="chatHeader">
+        <p class="empty-msg">Select a conversation</p>
+      </div>
+      <div class="msg-messages" id="messagesList"></div>
+      <div class="msg-input hidden" id="msgInput">
+        <form id="sendForm">
+          <input type="hidden" id="receiverId">
+          <input type="text" id="msgContent" class="input" placeholder="Type a message..." autocomplete="off">
+          <button type="submit" class="btn-primary">Send</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- New Message Modal -->
+  <div class="modal-overlay hidden" id="newMsgModal">
+    <div class="modal">
+      <h3>New Message</h3>
+      <div class="form-group">
+        <label>Send to</label>
+        <select id="contactSelect" class="input">
+          <option value="">Select a contact...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="newMsgContent" class="input textarea" rows="3" placeholder="Type your message..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeNewMsg()">Cancel</button>
+        <button type="button" class="btn-primary" onclick="sendNewMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let activePartnerId = null;
+    let refreshInterval = null;
+
+    async function init() {
+      const res = await fetch('/api/user');
+      if (!res.ok) { window.location.href = '/login'; return; }
+      currentUser = await res.json();
+
+      await loadConversations();
+
+      // Auto-refresh every 5 seconds
+      refreshInterval = setInterval(async () => {
+        await loadConversations();
+        if (activePartnerId) await loadMessages(activePartnerId, true);
+      }, 5000);
+    }
+
+    async function loadConversations() {
+      const res = await fetch('/api/messages/conversations');
+      const convs = await res.json();
+      const el = document.getElementById('conversationsList');
+
+      if (!convs.length) { el.innerHTML = '<p class="empty-msg">No conversations yet. Start a new message!</p>'; return; }
+
+      el.innerHTML = convs.map(c => `
+        <div class="conv-item ${c.partner_id === activePartnerId ? 'active' : ''} ${c.unread > 0 ? 'unread' : ''}" onclick="openConversation('${c.partner_id}')">
+          <div class="conv-avatar">${c.partner ? c.partner.first_name[0] : '?'}</div>
+          <div class="conv-info">
+            <div class="conv-name">
+              ${c.partner ? c.partner.first_name + ' ' + c.partner.last_name : 'Unknown'}
+              <span class="conv-role">${formatRole(c.partner?.role)}</span>
+            </div>
+            <div class="conv-preview">${truncate(c.last_message, 40)}</div>
+          </div>
+          ${c.unread > 0 ? `<span class="badge">${c.unread}</span>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function openConversation(partnerId) {
+      activePartnerId = partnerId;
+      document.getElementById('receiverId').value = partnerId;
+      document.getElementById('msgInput').classList.remove('hidden');
+
+      await loadMessages(partnerId);
+      await loadConversations(); // Refresh to update active state
+    }
+
+    async function loadMessages(partnerId, silent = false) {
+      const res = await fetch(`/api/messages/conversation/${partnerId}`);
+      const data = await res.json();
+
+      document.getElementById('chatHeader').innerHTML = `
+        <strong>${data.partner ? data.partner.first_name + ' ' + data.partner.last_name : 'Unknown'}</strong>
+        <span class="conv-role">${formatRole(data.partner?.role)}</span>
+      `;
+
+      const el = document.getElementById('messagesList');
+      const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+
+      el.innerHTML = (data.messages || []).map(m => `
+        <div class="msg-bubble ${m.sender_id === currentUser.id ? 'sent' : 'received'}">
+          <div class="msg-text">${escapeHtml(m.content)}</div>
+          <div class="msg-time">${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+        </div>
+      `).join('');
+
+      if (!silent || wasAtBottom) {
+        el.scrollTop = el.scrollHeight;
+      }
+    }
+
+    document.getElementById('sendForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const content = document.getElementById('msgContent').value.trim();
+      if (!content) return;
+
+      await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiver_id: activePartnerId, content })
+      });
+
+      document.getElementById('msgContent').value = '';
+      await loadMessages(activePartnerId);
+      await loadConversations();
+    });
+
+    async function showNewMessage() {
+      const res = await fetch('/api/messages/contacts');
+      const contacts = await res.json();
+      const select = document.getElementById('contactSelect');
+      select.innerHTML = '<option value="">Select a contact...</option>' +
+        contacts.map(c => `<option value="${c.id}">${c.first_name} ${c.last_name} (${formatRole(c.role)})</option>`).join('');
+      document.getElementById('newMsgContent').value = '';
+      document.getElementById('newMsgModal').classList.remove('hidden');
+    }
+
+    function closeNewMsg() {
+      document.getElementById('newMsgModal').classList.add('hidden');
+    }
+
+    async function sendNewMessage() {
+      const receiverId = document.getElementById('contactSelect').value;
+      const content = document.getElementById('newMsgContent').value.trim();
+      if (!receiverId || !content) { alert('Select a contact and type a message'); return; }
+
+      await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiver_id: receiverId, content })
+      });
+
+      closeNewMsg();
+      activePartnerId = receiverId;
+      document.getElementById('receiverId').value = receiverId;
+      document.getElementById('msgInput').classList.remove('hidden');
+      await loadConversations();
+      await loadMessages(receiverId);
+    }
+
+    function formatRole(role) {
+      if (!role) return '';
+      if (role === 'master_teacher') return 'Admin';
+      return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+
+    function truncate(str, len) {
+      if (!str) return '';
+      return str.length > len ? str.slice(0, len) + '...' : str;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+
+    init();
+  </script>
+</body>
+</html>

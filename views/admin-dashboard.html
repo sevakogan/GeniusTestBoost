@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — GeniusTestBoost</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="dash-nav">
+    <div class="dash-nav-inner">
+      <a href="/dashboard" class="dash-logo">Genius<span>TestBoost</span></a>
+      <div class="dash-nav-right">
+        <a href="/messages" class="dash-nav-link">Messages <span id="msg-badge" class="badge hidden">0</span></a>
+        <div class="dash-user">
+          <span id="userName"></span>
+          <span class="role-badge admin">Admin</span>
+          <button id="logoutBtn" class="btn-ghost-sm">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dash-main">
+    <!-- Stats -->
+    <section class="dash-section">
+      <h2>Platform Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="statStudents">0</div><div class="stat-label">Students</div></div>
+        <div class="stat-card"><div class="stat-num" id="statTeachers">0</div><div class="stat-label">Teachers</div></div>
+        <div class="stat-card"><div class="stat-num" id="statCourses">0</div><div class="stat-label">Courses</div></div>
+        <div class="stat-card accent"><div class="stat-num" id="statPending">0</div><div class="stat-label">Pending Approvals</div></div>
+      </div>
+    </section>
+
+    <!-- Pending Approvals -->
+    <section class="dash-section" id="pendingSection">
+      <h2>Pending Teacher Approvals</h2>
+      <div id="pendingList" class="card-list">
+        <p class="empty-msg">No pending approvals</p>
+      </div>
+    </section>
+
+    <!-- User Management -->
+    <section class="dash-section">
+      <div class="section-header">
+        <h2>User Management</h2>
+        <div class="filter-bar">
+          <select id="roleFilter" class="input-sm">
+            <option value="">All Roles</option>
+            <option value="student">Students</option>
+            <option value="teacher">Teachers</option>
+            <option value="master_teacher">Admins</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="usersTable">
+          <thead>
+            <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- All Courses -->
+    <section class="dash-section">
+      <h2>All Courses</h2>
+      <div class="table-wrap">
+        <table class="data-table" id="coursesTable">
+          <thead>
+            <tr><th>Course</th><th>Teacher</th><th>Students</th><th>Status</th><th>Created</th></tr>
+          </thead>
+          <tbody id="coursesBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Edit User Modal -->
+  <div class="modal-overlay hidden" id="editModal">
+    <div class="modal">
+      <h3>Edit User</h3>
+      <form id="editForm">
+        <input type="hidden" id="editId">
+        <div class="form-row">
+          <div class="form-group"><label>First Name</label><input type="text" id="editFirst" class="input"></div>
+          <div class="form-group"><label>Last Name</label><input type="text" id="editLast" class="input"></div>
+        </div>
+        <div class="form-group"><label>Email</label><input type="email" id="editEmail" class="input"></div>
+        <div class="form-group"><label>Role</label>
+          <select id="editRole" class="input">
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+            <option value="master_teacher">Master Teacher</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    async function init() {
+      const res = await fetch('/api/user');
+      if (!res.ok) { window.location.href = '/login'; return; }
+      currentUser = await res.json();
+      document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+
+      await Promise.all([loadStats(), loadPending(), loadUsers(), loadCourses(), loadUnread()]);
+    }
+
+    async function loadStats() {
+      const res = await fetch('/api/admin/stats');
+      const s = await res.json();
+      document.getElementById('statStudents').textContent = s.totalStudents;
+      document.getElementById('statTeachers').textContent = s.totalTeachers;
+      document.getElementById('statCourses').textContent = s.totalCourses;
+      document.getElementById('statPending').textContent = s.pendingApprovals;
+    }
+
+    async function loadPending() {
+      const res = await fetch('/api/admin/pending-teachers');
+      const teachers = await res.json();
+      const el = document.getElementById('pendingList');
+      if (!teachers.length) { el.innerHTML = '<p class="empty-msg">No pending approvals</p>'; return; }
+      el.innerHTML = teachers.map(t => `
+        <div class="list-item">
+          <div class="list-item-info">
+            <strong>${t.first_name} ${t.last_name}</strong>
+            <span>${t.email}</span>
+            <small>Registered ${new Date(t.created_at).toLocaleDateString()}</small>
+          </div>
+          <div class="list-item-actions">
+            <button class="btn-success-sm" onclick="approveTeacher('${t.id}')">Approve</button>
+            <button class="btn-danger-sm" onclick="rejectTeacher('${t.id}')">Reject</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadUsers(role = '') {
+      let url = '/api/admin/users';
+      if (role) url += `?role=${role}`;
+      const res = await fetch(url);
+      const users = await res.json();
+      const tbody = document.getElementById('usersBody');
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>${u.first_name} ${u.last_name}</td>
+          <td>${u.email}</td>
+          <td><span class="role-badge ${u.role}">${formatRole(u.role)}</span></td>
+          <td><span class="status-dot ${u.is_approved ? 'active' : 'pending'}"></span>${u.is_approved ? 'Active' : 'Pending'}</td>
+          <td>${new Date(u.created_at).toLocaleDateString()}</td>
+          <td class="action-cell">
+            <button class="btn-ghost-sm" onclick="editUser('${u.id}')">Edit</button>
+            ${u.role !== 'master_teacher' ? `<button class="btn-ghost-sm" onclick="promoteUser('${u.id}')">Promote</button>` : ''}
+            ${u.id !== currentUser.id ? `<button class="btn-danger-sm" onclick="deleteUser('${u.id}')">Delete</button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadCourses() {
+      const res = await fetch('/api/admin/courses');
+      const courses = await res.json();
+      const tbody = document.getElementById('coursesBody');
+      if (!courses.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">No courses yet</td></tr>'; return; }
+      tbody.innerHTML = courses.map(c => `
+        <tr>
+          <td><a href="/course/${c.id}">${c.name}</a></td>
+          <td>${c.teacher ? c.teacher.first_name + ' ' + c.teacher.last_name : 'Unknown'}</td>
+          <td>${c.enrollment_count || 0}</td>
+          <td><span class="status-dot ${c.is_active ? 'active' : 'inactive'}"></span>${c.is_active ? 'Active' : 'Inactive'}</td>
+          <td>${new Date(c.created_at).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadUnread() {
+      const res = await fetch('/api/messages/unread-count');
+      const data = await res.json();
+      const badge = document.getElementById('msg-badge');
+      if (data.count > 0) { badge.textContent = data.count; badge.classList.remove('hidden'); }
+    }
+
+    async function approveTeacher(id) {
+      await fetch(`/api/admin/users/${id}/approve`, { method: 'POST' });
+      await Promise.all([loadPending(), loadUsers(), loadStats()]);
+    }
+
+    async function rejectTeacher(id) {
+      if (!confirm('Reject this teacher?')) return;
+      await fetch(`/api/admin/users/${id}/reject`, { method: 'POST' });
+      await Promise.all([loadPending(), loadUsers(), loadStats()]);
+    }
+
+    async function promoteUser(id) {
+      if (!confirm('Promote this user to Master Teacher (Admin)?')) return;
+      await fetch(`/api/admin/users/${id}/promote`, { method: 'POST' });
+      await loadUsers();
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Delete this user permanently?')) return;
+      await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      await Promise.all([loadUsers(), loadStats()]);
+    }
+
+    async function editUser(id) {
+      const res = await fetch(`/api/admin/users/${id}`);
+      const u = await res.json();
+      document.getElementById('editId').value = u.id;
+      document.getElementById('editFirst').value = u.first_name;
+      document.getElementById('editLast').value = u.last_name;
+      document.getElementById('editEmail').value = u.email;
+      document.getElementById('editRole').value = u.role;
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('editId').value;
+      await fetch(`/api/admin/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: document.getElementById('editFirst').value,
+          last_name: document.getElementById('editLast').value,
+          email: document.getElementById('editEmail').value,
+          role: document.getElementById('editRole').value
+        })
+      });
+      closeModal();
+      await loadUsers();
+    });
+
+    document.getElementById('roleFilter').addEventListener('change', (e) => {
+      loadUsers(e.target.value);
+    });
+
+    function formatRole(role) {
+      if (role === 'master_teacher') return 'Admin';
+      return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+
+    init();
+  </script>
+</body>
+</html>

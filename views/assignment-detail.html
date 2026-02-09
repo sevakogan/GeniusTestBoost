@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assignment — GeniusTestBoost</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="dash-nav">
+    <div class="dash-nav-inner">
+      <a href="/dashboard" class="dash-logo">Genius<span>TestBoost</span></a>
+      <div class="dash-nav-right">
+        <a href="/dashboard" class="dash-nav-link">Dashboard</a>
+        <button id="logoutBtn" class="btn-ghost-sm">Sign Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dash-main">
+    <div class="breadcrumb">
+      <a href="/dashboard">Dashboard</a> / <a id="courseLink" href="#">Course</a> / <span id="assignTitle">Assignment</span>
+    </div>
+
+    <!-- Assignment Info -->
+    <section class="dash-section">
+      <h1 id="title">Loading...</h1>
+      <p id="description" class="course-desc"></p>
+      <div class="course-meta">
+        <span id="dueDate"></span>
+        <span id="maxPoints"></span>
+        <span id="courseName"></span>
+      </div>
+    </section>
+
+    <!-- Student: Submit Work -->
+    <section class="dash-section hidden" id="submitSection">
+      <h2>Your Submission</h2>
+      <div id="submissionStatus"></div>
+      <form id="submitForm">
+        <div class="form-group">
+          <label>Your Answer / Work</label>
+          <textarea id="submitContent" class="input textarea" rows="6" placeholder="Write your answer here..."></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Submit</button>
+      </form>
+      <div id="gradeResult" class="hidden" style="margin-top: 20px;"></div>
+    </section>
+
+    <!-- Teacher: View Submissions -->
+    <section class="dash-section hidden" id="gradingSection">
+      <h2>Student Submissions</h2>
+      <div id="submissionsList" class="card-list">
+        <p class="empty-msg">No submissions yet</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Grade Modal -->
+  <div class="modal-overlay hidden" id="gradeModal">
+    <div class="modal">
+      <h3>Grade Submission</h3>
+      <div id="gradeStudentName" style="margin-bottom:12px;font-weight:600;"></div>
+      <div id="gradeStudentContent" class="submission-preview"></div>
+      <form id="gradeForm">
+        <input type="hidden" id="gradeSubId">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Grade (out of <span id="gradeMax">100</span>)</label>
+            <input type="number" id="gradeValue" class="input" min="0" required>
+          </div>
+        </div>
+        <div class="form-group"><label>Feedback</label><textarea id="gradeFeedback" class="input textarea" rows="3"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" onclick="closeGradeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save Grade</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let assignmentId = window.location.pathname.split('/assignment/')[1];
+    let assignmentData = null;
+
+    async function init() {
+      const userRes = await fetch('/api/user');
+      if (!userRes.ok) { window.location.href = '/login'; return; }
+      currentUser = await userRes.json();
+
+      await loadAssignment();
+    }
+
+    async function loadAssignment() {
+      const res = await fetch(`/api/assignments/${assignmentId}`);
+      if (!res.ok) { alert('Assignment not found'); window.location.href = '/dashboard'; return; }
+      assignmentData = await res.json();
+
+      document.getElementById('title').textContent = assignmentData.title;
+      document.getElementById('assignTitle').textContent = assignmentData.title;
+      document.getElementById('description').textContent = assignmentData.description || '';
+      document.getElementById('dueDate').textContent = assignmentData.due_date ? `Due: ${new Date(assignmentData.due_date).toLocaleDateString()}` : 'No due date';
+      document.getElementById('maxPoints').textContent = `${assignmentData.max_points} points`;
+      document.getElementById('courseName').textContent = assignmentData.course ? assignmentData.course.name : '';
+      document.getElementById('courseLink').textContent = assignmentData.course ? assignmentData.course.name : 'Course';
+      document.getElementById('courseLink').href = `/course/${assignmentData.course_id}`;
+      document.title = assignmentData.title + ' — GeniusTestBoost';
+
+      if (currentUser.role === 'student') {
+        document.getElementById('submitSection').classList.remove('hidden');
+        renderStudentSubmission();
+      } else {
+        document.getElementById('gradingSection').classList.remove('hidden');
+        await loadSubmissions();
+      }
+    }
+
+    function renderStudentSubmission() {
+      const sub = assignmentData.my_submission;
+      const statusEl = document.getElementById('submissionStatus');
+      const gradeEl = document.getElementById('gradeResult');
+
+      if (sub) {
+        document.getElementById('submitContent').value = sub.content || '';
+
+        if (sub.grade !== null) {
+          const pct = Math.round(sub.grade / assignmentData.max_points * 100);
+          const color = pct >= 80 ? 'success' : pct >= 60 ? 'warning' : 'danger';
+          gradeEl.classList.remove('hidden');
+          gradeEl.innerHTML = `
+            <div class="grade-card ${color}">
+              <div class="grade-big">${sub.grade}/${assignmentData.max_points}</div>
+              <div class="grade-pct">${pct}%</div>
+              ${sub.feedback ? `<div class="grade-feedback"><strong>Feedback:</strong> ${sub.feedback}</div>` : ''}
+              <small>Graded on ${new Date(sub.graded_at).toLocaleDateString()}</small>
+            </div>
+          `;
+          statusEl.innerHTML = '<div class="status-pill graded">Graded</div>';
+        } else {
+          statusEl.innerHTML = '<div class="status-pill submitted">Submitted — Awaiting grade</div>';
+        }
+      } else {
+        statusEl.innerHTML = '<div class="status-pill pending">Not yet submitted</div>';
+      }
+    }
+
+    document.getElementById('submitForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const content = document.getElementById('submitContent').value;
+      if (!content.trim()) { alert('Please write your answer'); return; }
+
+      const res = await fetch(`/api/assignments/${assignmentId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+
+      if (res.ok) {
+        await loadAssignment();
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to submit');
+      }
+    });
+
+    async function loadSubmissions() {
+      const res = await fetch(`/api/assignments/${assignmentId}/submissions`);
+      const data = await res.json();
+      const el = document.getElementById('submissionsList');
+
+      if (!data.submissions || !data.submissions.length) {
+        el.innerHTML = '<p class="empty-msg">No submissions yet</p>';
+        return;
+      }
+
+      el.innerHTML = data.submissions.map(s => {
+        let gradeHtml = '';
+        if (s.grade !== null) {
+          const pct = Math.round(s.grade / assignmentData.max_points * 100);
+          const color = pct >= 80 ? 'success' : pct >= 60 ? 'warning' : 'danger';
+          gradeHtml = `<span class="grade-display ${color}">${s.grade}/${assignmentData.max_points}</span>`;
+        } else {
+          gradeHtml = `<button class="btn-primary-sm" onclick="openGrade('${s.id}', '${s.student ? s.student.first_name + ' ' + s.student.last_name : ''}', \`${(s.content || '').replace(/`/g, "'")}\`)">Grade</button>`;
+        }
+
+        return `
+          <div class="list-item">
+            <div class="list-item-info">
+              <strong>${s.student ? s.student.first_name + ' ' + s.student.last_name : 'Unknown'}</strong>
+              <span>${s.student ? s.student.email : ''}</span>
+              <small>Submitted ${new Date(s.submitted_at).toLocaleDateString()}</small>
+            </div>
+            <div class="list-item-actions">
+              ${gradeHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openGrade(subId, studentName, content) {
+      document.getElementById('gradeSubId').value = subId;
+      document.getElementById('gradeStudentName').textContent = studentName;
+      document.getElementById('gradeStudentContent').textContent = content;
+      document.getElementById('gradeMax').textContent = assignmentData.max_points;
+      document.getElementById('gradeValue').max = assignmentData.max_points;
+      document.getElementById('gradeValue').value = '';
+      document.getElementById('gradeFeedback').value = '';
+      document.getElementById('gradeModal').classList.remove('hidden');
+    }
+
+    function closeGradeModal() {
+      document.getElementById('gradeModal').classList.add('hidden');
+    }
+
+    document.getElementById('gradeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const subId = document.getElementById('gradeSubId').value;
+      const res = await fetch(`/api/assignments/submissions/${subId}/grade`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grade: parseInt(document.getElementById('gradeValue').value),
+          feedback: document.getElementById('gradeFeedback').value
+        })
+      });
+
+      if (res.ok) {
+        closeGradeModal();
+        await loadSubmissions();
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to grade');
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+
+    init();
+  </script>
+</body>
+</html>

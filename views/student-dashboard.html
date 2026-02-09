@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard — GeniusTestBoost</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="dash-nav">
+    <div class="dash-nav-inner">
+      <a href="/dashboard" class="dash-logo">Genius<span>TestBoost</span></a>
+      <div class="dash-nav-right">
+        <a href="/messages" class="dash-nav-link">Messages <span id="msg-badge" class="badge hidden">0</span></a>
+        <div class="dash-user">
+          <span id="userName"></span>
+          <span class="role-badge student">Student</span>
+          <button id="logoutBtn" class="btn-ghost-sm">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dash-main">
+    <!-- Stats -->
+    <section class="dash-section">
+      <h2>Welcome back, <span id="firstName"></span></h2>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="statCourses">0</div><div class="stat-label">Enrolled Courses</div></div>
+        <div class="stat-card"><div class="stat-num" id="statDue">0</div><div class="stat-label">Assignments Due</div></div>
+        <div class="stat-card"><div class="stat-num" id="statGrade">-</div><div class="stat-label">Avg. Grade</div></div>
+        <div class="stat-card"><div class="stat-num" id="statCompleted">0</div><div class="stat-label">Completed</div></div>
+      </div>
+    </section>
+
+    <!-- My Courses -->
+    <section class="dash-section">
+      <div class="section-header">
+        <h2>My Courses</h2>
+        <button class="btn-primary" onclick="showBrowse()">Browse Courses</button>
+      </div>
+      <div id="coursesList" class="card-grid">
+        <p class="empty-msg">No courses yet. Browse available courses to enroll!</p>
+      </div>
+    </section>
+
+    <!-- Recent Grades -->
+    <section class="dash-section">
+      <h2>Recent Grades</h2>
+      <div id="gradesList" class="card-list">
+        <p class="empty-msg">No grades yet</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Browse Courses Modal -->
+  <div class="modal-overlay hidden" id="browseModal">
+    <div class="modal modal-lg">
+      <h3>Available Courses</h3>
+      <div id="availableCourses" class="card-list">
+        <p class="empty-msg">Loading...</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeBrowse()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    async function init() {
+      const res = await fetch('/api/user');
+      if (!res.ok) { window.location.href = '/login'; return; }
+      currentUser = await res.json();
+      document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+      document.getElementById('firstName').textContent = currentUser.firstName;
+
+      await Promise.all([loadCourses(), loadGrades(), loadUnread()]);
+    }
+
+    async function loadCourses() {
+      const res = await fetch('/api/courses');
+      const courses = await res.json();
+      const el = document.getElementById('coursesList');
+
+      document.getElementById('statCourses').textContent = courses.length;
+
+      if (!courses.length) {
+        el.innerHTML = '<p class="empty-msg">No courses yet. Browse available courses to enroll!</p>';
+        return;
+      }
+
+      el.innerHTML = courses.map(c => `
+        <div class="course-card">
+          <div class="course-card-header">
+            <h3><a href="/course/${c.id}">${c.name}</a></h3>
+            ${c.subject ? `<span class="tag-pill">${c.subject}</span>` : ''}
+          </div>
+          <p class="course-desc">${c.description || 'No description'}</p>
+          <div class="course-meta">
+            <span>By ${c.teacher ? c.teacher.first_name + ' ' + c.teacher.last_name : 'Unknown'}</span>
+            <span>${c.assignment_count || 0} assignments</span>
+          </div>
+          <div class="course-actions">
+            <a href="/course/${c.id}" class="btn-primary-sm">Open Course</a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadGrades() {
+      const res = await fetch('/api/assignments/my-submissions');
+      const subs = await res.json();
+
+      const graded = subs.filter(s => s.grade !== null);
+      const ungraded = subs.filter(s => s.grade === null);
+      document.getElementById('statCompleted').textContent = graded.length;
+      document.getElementById('statDue').textContent = ungraded.length;
+
+      if (graded.length > 0) {
+        const avg = Math.round(graded.reduce((sum, s) => sum + (s.grade / (s.assignment?.max_points || 100) * 100), 0) / graded.length);
+        document.getElementById('statGrade').textContent = avg + '%';
+      }
+
+      const el = document.getElementById('gradesList');
+      if (!graded.length) { el.innerHTML = '<p class="empty-msg">No grades yet</p>'; return; }
+
+      el.innerHTML = graded.slice(0, 10).map(s => {
+        const pct = s.assignment ? Math.round(s.grade / s.assignment.max_points * 100) : 0;
+        const color = pct >= 80 ? 'success' : pct >= 60 ? 'warning' : 'danger';
+        return `
+          <div class="list-item">
+            <div class="list-item-info">
+              <strong>${s.assignment ? s.assignment.title : 'Unknown'}</strong>
+              <span>${s.course_name || ''}</span>
+              ${s.feedback ? `<small>Feedback: ${s.feedback}</small>` : ''}
+            </div>
+            <div class="grade-display ${color}">
+              ${s.grade}/${s.assignment ? s.assignment.max_points : 100}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadUnread() {
+      const res = await fetch('/api/messages/unread-count');
+      const data = await res.json();
+      const badge = document.getElementById('msg-badge');
+      if (data.count > 0) { badge.textContent = data.count; badge.classList.remove('hidden'); }
+    }
+
+    async function showBrowse() {
+      document.getElementById('browseModal').classList.remove('hidden');
+      const res = await fetch('/api/courses/available');
+      const courses = await res.json();
+      const el = document.getElementById('availableCourses');
+
+      if (!courses.length) { el.innerHTML = '<p class="empty-msg">No courses available right now</p>'; return; }
+
+      el.innerHTML = courses.map(c => `
+        <div class="list-item">
+          <div class="list-item-info">
+            <strong>${c.name}</strong>
+            <span>${c.teacher ? c.teacher.first_name + ' ' + c.teacher.last_name : 'Unknown'} ${c.subject ? '• ' + c.subject : ''}</span>
+            <small>${c.enrollment_count || 0} students enrolled</small>
+          </div>
+          <div class="list-item-actions">
+            ${c.is_enrolled
+              ? '<button class="btn-ghost-sm" disabled>Enrolled</button>'
+              : `<button class="btn-primary-sm" onclick="enroll('${c.id}')">Enroll</button>`
+            }
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function closeBrowse() {
+      document.getElementById('browseModal').classList.add('hidden');
+    }
+
+    async function enroll(courseId) {
+      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: 'POST' });
+      if (res.ok) {
+        await loadCourses();
+        showBrowse(); // Refresh the list
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to enroll');
+      }
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+
+    init();
+  </script>
+</body>
+</html>

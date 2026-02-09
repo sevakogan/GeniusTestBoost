@@ -2,7 +2,15 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
+
+// Route imports
 const authRoutes = require('./routes/auth');
+const courseRoutes = require('./routes/courses');
+const assignmentRoutes = require('./routes/assignments');
+const messageRoutes = require('./routes/messages');
+const adminRoutes = require('./routes/admin');
+
+const { requireAuth } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5432;
@@ -28,8 +36,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
+// API Routes
 app.use('/auth', authRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/assignments', assignmentRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Page routes
 app.get('/', (req, res) => {
@@ -50,11 +62,29 @@ app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'register.html'));
 });
 
-app.get('/dashboard', (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/login');
+// Role-based dashboard routing
+app.get('/dashboard', requireAuth, (req, res) => {
+  const role = req.session.user.role;
+  if (role === 'master_teacher') {
+    res.sendFile(path.join(__dirname, 'views', 'admin-dashboard.html'));
+  } else if (role === 'teacher') {
+    res.sendFile(path.join(__dirname, 'views', 'teacher-dashboard.html'));
+  } else {
+    res.sendFile(path.join(__dirname, 'views', 'student-dashboard.html'));
   }
-  res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
+});
+
+// Sub-pages
+app.get('/course/:id', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'course-detail.html'));
+});
+
+app.get('/assignment/:id', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'assignment-detail.html'));
+});
+
+app.get('/messages', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'messages.html'));
 });
 
 // API endpoint to get current user info
