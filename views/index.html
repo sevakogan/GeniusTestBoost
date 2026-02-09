@@ -7,14 +7,27 @@
   <link rel="stylesheet" href="/css/landing.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+
+  <!-- Animated Background -->
+  <div class="bg-animation">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+    <div class="orb orb-5"></div>
+    <div class="particles" id="particles"></div>
+  </div>
 
   <!-- Nav -->
   <nav id="nav">
     <div class="wrap nav-inner">
-      <a href="/" class="logo">Genius<span>TestBoost</span></a>
+      <a href="/" class="logo">
+        <div class="logo-icon">G</div>
+        Genius<span>TestBoost</span>
+      </a>
       <div class="nav-right">
         <a href="#how" class="nav-link hide-mobile">How It Works</a>
         <a href="#results" class="nav-link hide-mobile">Results</a>
@@ -26,34 +39,62 @@
 
   <!-- Hero -->
   <header class="hero">
-    <div class="hero-glow glow-1"></div>
-    <div class="hero-glow glow-2"></div>
     <div class="wrap hero-wrap">
       <div class="hero-text">
-        <div class="pill">Trusted by 2,000+ students nationwide</div>
+        <div class="pill">
+          <span class="pill-dot"></span>
+          Trusted by 2,000+ students nationwide
+        </div>
         <h1>Score higher.<br>Study smarter.<br><span class="gradient-text">Guaranteed.</span></h1>
         <p class="hero-p">1-on-1 expert tutoring for SAT, ACT, GRE & more. Our master instructors don't just teach the material — they teach you how to think.</p>
         <div class="hero-actions">
-          <a href="/register" class="cta">Start Free Trial</a>
+          <a href="/register" class="cta">
+            Start Free Trial
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
           <a href="#how" class="cta-ghost">See how it works</a>
         </div>
         <div class="hero-proof">
           <div class="avatars">
-            <div class="avatar" style="background:#FF6B6B;">S</div>
-            <div class="avatar" style="background:#4ECDC4;">M</div>
-            <div class="avatar" style="background:#FFD93D;">A</div>
-            <div class="avatar" style="background:#6C5CE7;">K</div>
+            <div class="avatar" style="background: linear-gradient(135deg, #FF6B6B, #ee5a24);">S</div>
+            <div class="avatar" style="background: linear-gradient(135deg, #4ECDC4, #2ecc71);">M</div>
+            <div class="avatar" style="background: linear-gradient(135deg, #FFD93D, #f39c12);">A</div>
+            <div class="avatar" style="background: linear-gradient(135deg, #6C5CE7, #a29bfe);">K</div>
           </div>
           <p><strong>4.9/5</strong> from 800+ reviews</p>
         </div>
       </div>
       <div class="hero-visual">
         <div class="score-card">
-          <div class="score-label">Average Score Improvement</div>
-          <div class="score-number">+240</div>
-          <div class="score-sub">SAT points in 8 weeks</div>
+          <div class="score-ring">
+            <svg viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(201,168,76,0.1)" stroke-width="4"/>
+              <circle cx="60" cy="60" r="54" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-dasharray="280 340" stroke-linecap="round" class="ring-progress"/>
+            </svg>
+            <defs>
+              <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#C9A84C"/>
+                <stop offset="100%" style="stop-color:#E8D48B"/>
+              </linearGradient>
+            </defs>
+          </div>
+          <div class="score-content">
+            <div class="score-label">Average Score Improvement</div>
+            <div class="score-number">+240</div>
+            <div class="score-sub">SAT points in 8 weeks</div>
+          </div>
           <div class="score-bar">
             <div class="score-fill"></div>
+          </div>
+          <div class="mini-stats">
+            <div class="mini-stat">
+              <span class="mini-num">98%</span>
+              <span class="mini-label">Hit target</span>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-num">2K+</span>
+              <span class="mini-label">Students</span>
+            </div>
           </div>
         </div>
       </div>
@@ -81,19 +122,17 @@
       <p class="tag">How It Works</p>
       <h2>Three steps to your best score</h2>
       <div class="steps">
-        <div class="step">
+        <div class="step-card">
           <div class="step-num">01</div>
           <h3>Diagnostic Assessment</h3>
           <p>We pinpoint your exact strengths and weaknesses with a comprehensive evaluation — no guesswork.</p>
         </div>
-        <div class="step-line"></div>
-        <div class="step">
+        <div class="step-card">
           <div class="step-num">02</div>
           <h3>Custom Study Plan</h3>
           <p>Your instructor builds a week-by-week roadmap tailored to your target score and timeline.</p>
         </div>
-        <div class="step-line"></div>
-        <div class="step">
+        <div class="step-card">
           <div class="step-num">03</div>
           <h3>Live Expert Sessions</h3>
           <p>Meet 1-on-1 with your dedicated tutor. Real-time problem solving, strategy drills, and confidence building.</p>
@@ -160,19 +199,19 @@
       <p class="tag">Real Results</p>
       <h2>Numbers that speak for themselves</h2>
       <div class="results-grid">
-        <div class="result-card glow-card">
+        <div class="result-card">
           <div class="result-num">+240</div>
           <div class="result-label">Avg. SAT increase</div>
         </div>
-        <div class="result-card glow-card">
+        <div class="result-card">
           <div class="result-num">+6</div>
           <div class="result-label">Avg. ACT increase</div>
         </div>
-        <div class="result-card glow-card">
+        <div class="result-card">
           <div class="result-num">98%</div>
           <div class="result-label">Hit target score</div>
         </div>
-        <div class="result-card glow-card">
+        <div class="result-card">
           <div class="result-num">2,000+</div>
           <div class="result-label">Students served</div>
         </div>
@@ -190,7 +229,7 @@
           <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
           <p>"I went from a 1280 to a 1520 in two months. My tutor knew exactly what I needed to work on and made every session count."</p>
           <div class="test-author">
-            <div class="avatar" style="background:#FF6B6B;">S</div>
+            <div class="avatar" style="background: linear-gradient(135deg, #FF6B6B, #ee5a24);">S</div>
             <div>
               <strong>Sarah K.</strong>
               <span>SAT Prep</span>
@@ -201,7 +240,7 @@
           <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
           <p>"The diagnostic test was a game changer. Instead of studying everything, I focused on my weak spots and jumped 7 points on the ACT."</p>
           <div class="test-author">
-            <div class="avatar" style="background:#4ECDC4;">M</div>
+            <div class="avatar" style="background: linear-gradient(135deg, #4ECDC4, #2ecc71);">M</div>
             <div>
               <strong>Marcus T.</strong>
               <span>ACT Prep</span>
@@ -212,7 +251,7 @@
           <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
           <p>"Best investment I made for grad school. My GRE score put me in the 95th percentile and I got into my dream program."</p>
           <div class="test-author">
-            <div class="avatar" style="background:#6C5CE7;">A</div>
+            <div class="avatar" style="background: linear-gradient(135deg, #6C5CE7, #a29bfe);">A</div>
             <div>
               <strong>Aisha R.</strong>
               <span>GRE Prep</span>
@@ -277,7 +316,10 @@
     <div class="wrap cta-banner-inner">
       <h2>Ready to transform your test score?</h2>
       <p>Join thousands of students who boosted their scores with GeniusTestBoost. Your first session is free.</p>
-      <a href="/register" class="cta cta-lg">Start Your Free Trial</a>
+      <a href="/register" class="cta cta-lg">
+        Start Your Free Trial
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
     </div>
   </section>
 
@@ -285,7 +327,10 @@
   <footer class="footer">
     <div class="wrap footer-inner">
       <div class="footer-col footer-brand">
-        <a href="/" class="logo">Genius<span>TestBoost</span></a>
+        <a href="/" class="logo">
+          <div class="logo-icon">G</div>
+          Genius<span>TestBoost</span>
+        </a>
         <p>Master instructors. Proven methods. Real results.</p>
       </div>
       <div class="footer-col">
@@ -325,6 +370,33 @@
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
+
+    // Floating particles
+    const particleContainer = document.getElementById('particles');
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.classList.add('particle');
+      p.style.left = Math.random() * 100 + '%';
+      p.style.top = Math.random() * 100 + '%';
+      p.style.width = p.style.height = (Math.random() * 3 + 1) + 'px';
+      p.style.animationDelay = Math.random() * 8 + 's';
+      p.style.animationDuration = (Math.random() * 10 + 10) + 's';
+      particleContainer.appendChild(p);
+    }
+
+    // Scroll reveal
+    const revealEls = document.querySelectorAll('.step-card, .feat-card, .result-card, .test-card, .plan-card');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('revealed');
+          }, i * 80);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    revealEls.forEach(el => observer.observe(el));
   </script>
 
 </body>
