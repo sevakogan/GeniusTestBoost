@@ -11,8 +11,8 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #1a1a2e;
-  background: #fff;
+  color: #c9d1d9;
+  background: #0B1120;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -33,9 +33,9 @@ body {
 }
 
 #nav.scrolled {
-  background: rgba(255,255,255,0.96);
+  background: rgba(11,17,32,0.92);
   backdrop-filter: blur(16px);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .nav-inner {
@@ -56,7 +56,7 @@ body {
 
 .logo span { color: #FF6B6B; }
 
-#nav.scrolled .logo { color: #0B1120; }
+#nav.scrolled .logo { color: #fff; }
 
 .nav-right {
   display: flex;
@@ -74,8 +74,8 @@ body {
 
 .nav-link:hover { color: #fff; }
 
-#nav.scrolled .nav-link { color: #666; }
-#nav.scrolled .nav-link:hover { color: #0B1120; }
+#nav.scrolled .nav-link { color: rgba(255,255,255,0.6); }
+#nav.scrolled .nav-link:hover { color: #fff; }
 
 .login-btn {
   font-size: 14px;
@@ -236,19 +236,19 @@ body {
 .cta-outline {
   display: inline-block;
   padding: 14px 30px;
-  color: #1a1a2e;
+  color: rgba(255,255,255,0.8);
   font-size: 15px;
   font-weight: 600;
   text-decoration: none;
   border-radius: 10px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid rgba(255,255,255,0.15);
   transition: all 0.2s;
   text-align: center;
 }
 
 .cta-outline:hover {
   border-color: #6C5CE7;
-  color: #6C5CE7;
+  color: #fff;
 }
 
 /* Hero proof */
@@ -356,8 +356,8 @@ body {
 /* ========== TRUST BAR ========== */
 .trust-bar {
   padding: 48px 0;
-  background: #f8f9fc;
-  border-bottom: 1px solid #eee;
+  background: #0d1526;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 
 .trust-label {
@@ -366,7 +366,7 @@ body {
   font-weight: 600;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: #aaa;
+  color: rgba(255,255,255,0.3);
   margin-bottom: 24px;
 }
 
@@ -380,7 +380,7 @@ body {
 .trust-logos span {
   font-size: 18px;
   font-weight: 800;
-  color: #ccc;
+  color: rgba(255,255,255,0.15);
   letter-spacing: -0.3px;
 }
 
@@ -400,14 +400,14 @@ section h2 {
   font-weight: 800;
   text-align: center;
   letter-spacing: -0.8px;
-  color: #0B1120;
+  color: #fff;
   margin-bottom: 56px;
 }
 
 /* ========== HOW IT WORKS ========== */
 .how {
   padding: 120px 0;
-  background: #fff;
+  background: #0f1629;
 }
 
 .steps {
@@ -438,13 +438,13 @@ section h2 {
 .step h3 {
   font-size: 18px;
   font-weight: 700;
-  color: #0B1120;
+  color: #fff;
   margin-bottom: 10px;
 }
 
 .step p {
   font-size: 15px;
-  color: #777;
+  color: rgba(255,255,255,0.45);
   line-height: 1.65;
 }
 
@@ -460,7 +460,7 @@ section h2 {
 /* ========== FEATURES ========== */
 .features {
   padding: 120px 0;
-  background: #f8f9fc;
+  background: #0B1120;
 }
 
 .feat-grid {
@@ -470,23 +470,24 @@ section h2 {
 }
 
 .feat-card {
-  background: #fff;
+  background: rgba(255,255,255,0.03);
   border-radius: 16px;
   padding: 36px 30px;
-  border: 1px solid #eee;
+  border: 1px solid rgba(255,255,255,0.06);
   transition: transform 0.25s, box-shadow 0.25s;
 }
 
 .feat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(0,0,0,0.06);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+  border-color: rgba(108,92,231,0.2);
 }
 
 .feat-icon {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(108,92,231,0.08), rgba(255,107,107,0.08));
+  background: linear-gradient(135deg, rgba(108,92,231,0.15), rgba(255,107,107,0.1));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -497,13 +498,13 @@ section h2 {
 .feat-card h3 {
   font-size: 17px;
   font-weight: 700;
-  color: #0B1120;
+  color: #fff;
   margin-bottom: 8px;
 }
 
 .feat-card p {
   font-size: 14px;
-  color: #888;
+  color: rgba(255,255,255,0.4);
   line-height: 1.6;
 }
 
@@ -554,7 +555,7 @@ section h2 {
 /* ========== TESTIMONIALS ========== */
 .testimonials {
   padding: 120px 0;
-  background: #fff;
+  background: #0f1629;
 }
 
 .test-grid {
@@ -564,10 +565,10 @@ section h2 {
 }
 
 .test-card {
-  background: #f8f9fc;
+  background: rgba(255,255,255,0.03);
   border-radius: 16px;
   padding: 36px 30px;
-  border: 1px solid #eee;
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
 .stars {
@@ -579,7 +580,7 @@ section h2 {
 
 .test-card > p {
   font-size: 15px;
-  color: #555;
+  color: rgba(255,255,255,0.5);
   line-height: 1.7;
   margin-bottom: 24px;
   font-style: italic;
@@ -594,18 +595,18 @@ section h2 {
 .test-author strong {
   display: block;
   font-size: 14px;
-  color: #0B1120;
+  color: #fff;
 }
 
 .test-author span {
   font-size: 12px;
-  color: #aaa;
+  color: rgba(255,255,255,0.35);
 }
 
 /* ========== PLANS ========== */
 .plans {
   padding: 120px 0;
-  background: #f8f9fc;
+  background: #0B1120;
 }
 
 .plans-grid {
@@ -616,10 +617,10 @@ section h2 {
 }
 
 .plan-card {
-  background: #fff;
+  background: rgba(255,255,255,0.03);
   border-radius: 20px;
   padding: 44px 36px;
-  border: 1px solid #eee;
+  border: 1px solid rgba(255,255,255,0.06);
   text-align: center;
   position: relative;
   transition: transform 0.25s, box-shadow 0.25s;
@@ -627,13 +628,14 @@ section h2 {
 
 .plan-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(0,0,0,0.06);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.3);
 }
 
 .plan-pop {
   border: 2px solid #6C5CE7;
-  box-shadow: 0 16px 48px rgba(108, 92, 231, 0.12);
+  box-shadow: 0 16px 48px rgba(108, 92, 231, 0.15);
   transform: scale(1.03);
+  background: rgba(108,92,231,0.06);
 }
 
 .plan-pop:hover {
@@ -658,20 +660,20 @@ section h2 {
 .plan-card h3 {
   font-size: 22px;
   font-weight: 700;
-  color: #0B1120;
+  color: #fff;
   margin-bottom: 4px;
 }
 
 .plan-for {
   font-size: 14px;
-  color: #999;
+  color: rgba(255,255,255,0.4);
   margin-bottom: 24px;
 }
 
 .plan-price {
   font-size: 48px;
   font-weight: 900;
-  color: #0B1120;
+  color: #fff;
   margin-bottom: 28px;
   line-height: 1;
 }
@@ -679,7 +681,7 @@ section h2 {
 .plan-price span {
   font-size: 16px;
   font-weight: 500;
-  color: #aaa;
+  color: rgba(255,255,255,0.35);
 }
 
 .plan-card ul {
@@ -690,9 +692,9 @@ section h2 {
 
 .plan-card ul li {
   font-size: 14px;
-  color: #666;
+  color: rgba(255,255,255,0.5);
   padding: 10px 0;
-  border-bottom: 1px solid #f2f2f2;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
   padding-left: 26px;
   position: relative;
 }
@@ -705,7 +707,7 @@ section h2 {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #e8fde8;
+  background: rgba(78,205,196,0.12);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%234ECDC4' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
