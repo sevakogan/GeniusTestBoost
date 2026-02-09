@@ -33,10 +33,7 @@ app.use('/auth', authRoutes);
 
 // Page routes
 app.get('/', (req, res) => {
-  if (req.session.user) {
-    return res.redirect('/dashboard');
-  }
-  res.redirect('/login');
+  res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
 app.get('/login', (req, res) => {
