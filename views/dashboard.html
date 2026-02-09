@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - OnlineSchool V1</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard">
+    <nav class="dashboard-nav">
+      <div class="brand">OnlineSchool</div>
+      <div class="user-info">
+        <span id="userName">Loading...</span>
+        <span class="role-badge" id="userRole"></span>
+        <button class="btn-logout" id="logoutBtn">Sign Out</button>
+      </div>
+    </nav>
+
+    <div class="dashboard-content">
+      <div class="welcome-card">
+        <h2 id="welcomeText">Welcome back!</h2>
+        <p>Here's your learning dashboard. Start exploring your courses and track your progress.</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <h3>Enrolled Courses</h3>
+          <div class="stat-value">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <h3>Completed</h3>
+          <div class="stat-value">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏱️</div>
+          <h3>Hours Learned</h3>
+          <div class="stat-value">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏆</div>
+          <h3>Certificates</h3>
+          <div class="stat-value">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Load user info
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/user');
+        if (!res.ok) {
+          window.location.href = '/login';
+          return;
+        }
+        const user = await res.json();
+        document.getElementById('userName').textContent = user.firstName + ' ' + user.lastName;
+        document.getElementById('userRole').textContent = user.role;
+        document.getElementById('welcomeText').textContent = 'Welcome back, ' + user.firstName + '!';
+      } catch (err) {
+        window.location.href = '/login';
+      }
+    }
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/auth/logout', { method: 'POST' });
+        const result = await res.json();
+        if (result.success) {
+          window.location.href = result.redirect;
+        }
+      } catch (err) {
+        window.location.href = '/login';
+      }
+    });
+
+    loadUser();
+  </script>
+</body>
+</html>

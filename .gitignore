@@ -1,0 +1,6 @@
+node_modules/
+onlineschool.db
+onlineschool.db-shm
+onlineschool.db-wal
+.DS_Store
+.env
