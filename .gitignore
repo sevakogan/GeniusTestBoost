@@ -4,3 +4,4 @@ onlineschool.db-shm
 onlineschool.db-wal
 .DS_Store
 .env
+.vercel
