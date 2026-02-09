@@ -3,299 +3,327 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GeniusTestBoost - Respected Master Instructors</title>
+  <title>GeniusTestBoost - Master Your Exams</title>
   <link rel="stylesheet" href="/css/landing.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Navigation -->
-  <nav class="navbar" id="navbar">
-    <div class="nav-container">
-      <a href="/" class="nav-logo">GENIUSTESTBOOST</a>
-      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-      <ul class="nav-links" id="navLinks">
-        <li><a href="#home">Home</a></li>
-        <li><a href="#about">About</a></li>
-        <li><a href="#services">Services</a></li>
-        <li><a href="#pricing">Plans & Pricing</a></li>
-        <li><a href="#contact">Contact</a></li>
-        <li><a href="/login" class="nav-btn">Log In</a></li>
-      </ul>
+  <!-- Nav -->
+  <nav id="nav">
+    <div class="wrap nav-inner">
+      <a href="/" class="logo">Genius<span>TestBoost</span></a>
+      <div class="nav-right">
+        <a href="#how" class="nav-link hide-mobile">How It Works</a>
+        <a href="#results" class="nav-link hide-mobile">Results</a>
+        <a href="#plans" class="nav-link hide-mobile">Plans</a>
+        <a href="/login" class="login-btn">Log In</a>
+      </div>
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <section class="hero" id="home">
-    <div class="hero-overlay"></div>
-    <div class="hero-content">
-      <p class="hero-tag">GENIUSTESTBOOST</p>
-      <h1>Respected Master<br>Instructors</h1>
-      <p class="hero-sub">Connecting you to expert knowledge in engaging, interesting, and thought-provoking ways.</p>
-      <div class="hero-buttons">
-        <a href="/register" class="btn btn-white">Get Started</a>
-        <a href="#services" class="btn btn-outline">Explore Services</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Welcome Section -->
-  <section class="welcome" id="welcome">
-    <div class="container">
-      <div class="welcome-grid">
-        <div class="welcome-text">
-          <p class="section-tag">WELCOME</p>
-          <h2>Helping You Take Control of Your Future</h2>
-          <p>Our platform connects ambitious learners with master instructors who have dedicated their careers to academic excellence. Whether you're preparing for standardized tests, advancing your coursework, or building new skills, we're here to guide you every step of the way.</p>
-          <a href="/register" class="btn btn-primary">Start Now</a>
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-glow glow-1"></div>
+    <div class="hero-glow glow-2"></div>
+    <div class="wrap hero-wrap">
+      <div class="hero-text">
+        <div class="pill">Trusted by 2,000+ students nationwide</div>
+        <h1>Score higher.<br>Study smarter.<br><span class="gradient-text">Guaranteed.</span></h1>
+        <p class="hero-p">1-on-1 expert tutoring for SAT, ACT, GRE & more. Our master instructors don't just teach the material — they teach you how to think.</p>
+        <div class="hero-actions">
+          <a href="/register" class="cta">Start Free Trial</a>
+          <a href="#how" class="cta-ghost">See how it works</a>
         </div>
-        <div class="welcome-visual">
-          <div class="stat-block">
-            <div class="stat-number">500+</div>
-            <div class="stat-label">Students Helped</div>
+        <div class="hero-proof">
+          <div class="avatars">
+            <div class="avatar" style="background:#FF6B6B;">S</div>
+            <div class="avatar" style="background:#4ECDC4;">M</div>
+            <div class="avatar" style="background:#FFD93D;">A</div>
+            <div class="avatar" style="background:#6C5CE7;">K</div>
           </div>
-          <div class="stat-block">
-            <div class="stat-number">50+</div>
-            <div class="stat-label">Expert Instructors</div>
-          </div>
-          <div class="stat-block">
-            <div class="stat-number">98%</div>
-            <div class="stat-label">Satisfaction Rate</div>
-          </div>
-          <div class="stat-block">
-            <div class="stat-number">4.9</div>
-            <div class="stat-label">Average Rating</div>
+          <p><strong>4.9/5</strong> from 800+ reviews</p>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="score-card">
+          <div class="score-label">Average Score Improvement</div>
+          <div class="score-number">+240</div>
+          <div class="score-sub">SAT points in 8 weeks</div>
+          <div class="score-bar">
+            <div class="score-fill"></div>
           </div>
         </div>
       </div>
     </div>
+  </header>
+
+  <!-- Logos / Social Proof Bar -->
+  <section class="trust-bar">
+    <div class="wrap">
+      <p class="trust-label">Our students have been accepted to</p>
+      <div class="trust-logos">
+        <span>Stanford</span>
+        <span>MIT</span>
+        <span>Harvard</span>
+        <span>Yale</span>
+        <span>Columbia</span>
+        <span>UC Berkeley</span>
+      </div>
+    </div>
   </section>
 
-  <!-- About Section -->
-  <section class="about" id="about">
-    <div class="container">
-      <p class="section-tag center">ABOUT US</p>
-      <h2 class="section-title">Why GeniusTestBoost?</h2>
-      <div class="about-grid">
-        <div class="about-card">
-          <div class="about-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 4 3 6 3s6-1 6-3v-5"/></svg>
+  <!-- How It Works -->
+  <section class="how" id="how">
+    <div class="wrap">
+      <p class="tag">How It Works</p>
+      <h2>Three steps to your best score</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h3>Diagnostic Assessment</h3>
+          <p>We pinpoint your exact strengths and weaknesses with a comprehensive evaluation — no guesswork.</p>
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h3>Custom Study Plan</h3>
+          <p>Your instructor builds a week-by-week roadmap tailored to your target score and timeline.</p>
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h3>Live Expert Sessions</h3>
+          <p>Meet 1-on-1 with your dedicated tutor. Real-time problem solving, strategy drills, and confidence building.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="wrap">
+      <p class="tag">Why Students Choose Us</p>
+      <h2>Everything you need to crush test day</h2>
+      <div class="feat-grid">
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           </div>
           <h3>Master Instructors</h3>
-          <p>Each instructor decided on their field of specialization early in their career and has since developed a distinguished reputation for excellence.</p>
+          <p>Every tutor has 5+ years of experience and top-percentile scores in their specialty exam.</p>
         </div>
-        <div class="about-card">
-          <div class="about-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
           </div>
-          <h3>Accessible Learning</h3>
-          <p>We believe knowledge should be available to all. Our instructors teach and write in an accessible and understandable manner for every learner.</p>
+          <h3>Progress Analytics</h3>
+          <p>Track every practice test, see your improvement trends, and know exactly where to focus next.</p>
         </div>
-        <div class="about-card">
-          <div class="about-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </div>
-          <h3>Engaging Environment</h3>
-          <p>Our instructors encourage an environment that fosters learning and academic excellence through engaging, interesting, and thought-provoking methods.</p>
+          <h3>Flexible Scheduling</h3>
+          <p>Book sessions when it works for you — mornings, evenings, weekends. We fit your life.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <h3>Score Guarantee</h3>
+          <p>Improve your score or get your money back. We're that confident in our program.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          </div>
+          <h3>Full Resource Library</h3>
+          <p>Thousands of practice questions, video explanations, and strategy guides at your fingertips.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <h3>24/7 Support</h3>
+          <p>Stuck on a problem at midnight? Message your tutor or our support team anytime.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Services Section -->
-  <section class="services" id="services">
-    <div class="container">
-      <p class="section-tag center">TUTORING SERVICES</p>
-      <h2 class="section-title">What We Offer</h2>
-      <div class="services-grid">
-        <div class="service-card">
-          <div class="service-header">
-            <span class="service-badge">Popular</span>
-            <h3>Academic Consultation</h3>
-          </div>
-          <p class="service-duration">1 Hour Session</p>
-          <p class="service-desc">One-on-one consultation with a master instructor to assess your needs, create a study plan, and set goals for academic success.</p>
-          <div class="service-price">$99</div>
-          <a href="/register" class="btn btn-primary">Book Now</a>
+  <!-- Results -->
+  <section class="results" id="results">
+    <div class="wrap">
+      <p class="tag">Real Results</p>
+      <h2>Numbers that speak for themselves</h2>
+      <div class="results-grid">
+        <div class="result-card glow-card">
+          <div class="result-num">+240</div>
+          <div class="result-label">Avg. SAT increase</div>
         </div>
-        <div class="service-card featured">
-          <div class="service-header">
-            <span class="service-badge">Best Value</span>
-            <h3>Weekly Tutoring</h3>
-          </div>
-          <p class="service-duration">4 Sessions / Month</p>
-          <p class="service-desc">Regular weekly sessions with a dedicated instructor. Build consistent study habits and see measurable improvement.</p>
-          <div class="service-price">$349<span>/mo</span></div>
-          <a href="/register" class="btn btn-white">Get Started</a>
+        <div class="result-card glow-card">
+          <div class="result-num">+6</div>
+          <div class="result-label">Avg. ACT increase</div>
         </div>
-        <div class="service-card">
-          <div class="service-header">
-            <span class="service-badge">Intensive</span>
-            <h3>Test Prep Bootcamp</h3>
-          </div>
-          <p class="service-duration">8 Sessions</p>
-          <p class="service-desc">Intensive preparation for SAT, ACT, GRE, and other standardized tests. Strategies, practice tests, and expert review.</p>
-          <div class="service-price">$649</div>
-          <a href="/register" class="btn btn-primary">Book Now</a>
+        <div class="result-card glow-card">
+          <div class="result-num">98%</div>
+          <div class="result-label">Hit target score</div>
+        </div>
+        <div class="result-card glow-card">
+          <div class="result-num">2,000+</div>
+          <div class="result-label">Students served</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Pricing Plans Section -->
-  <section class="pricing" id="pricing">
-    <div class="container">
-      <p class="section-tag center">PLANS & PRICING</p>
-      <h2 class="section-title">Choose Your Plan</h2>
-      <div class="pricing-grid">
-        <div class="pricing-card">
+  <!-- Testimonials -->
+  <section class="testimonials">
+    <div class="wrap">
+      <p class="tag">Student Stories</p>
+      <h2>Hear from students who made it happen</h2>
+      <div class="test-grid">
+        <div class="test-card">
+          <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <p>"I went from a 1280 to a 1520 in two months. My tutor knew exactly what I needed to work on and made every session count."</p>
+          <div class="test-author">
+            <div class="avatar" style="background:#FF6B6B;">S</div>
+            <div>
+              <strong>Sarah K.</strong>
+              <span>SAT Prep</span>
+            </div>
+          </div>
+        </div>
+        <div class="test-card">
+          <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <p>"The diagnostic test was a game changer. Instead of studying everything, I focused on my weak spots and jumped 7 points on the ACT."</p>
+          <div class="test-author">
+            <div class="avatar" style="background:#4ECDC4;">M</div>
+            <div>
+              <strong>Marcus T.</strong>
+              <span>ACT Prep</span>
+            </div>
+          </div>
+        </div>
+        <div class="test-card">
+          <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <p>"Best investment I made for grad school. My GRE score put me in the 95th percentile and I got into my dream program."</p>
+          <div class="test-author">
+            <div class="avatar" style="background:#6C5CE7;">A</div>
+            <div>
+              <strong>Aisha R.</strong>
+              <span>GRE Prep</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="plans" id="plans">
+    <div class="wrap">
+      <p class="tag">Simple Pricing</p>
+      <h2>Pick the plan that fits your goals</h2>
+      <div class="plans-grid">
+        <div class="plan-card">
           <h3>Starter</h3>
-          <div class="pricing-amount">Free</div>
-          <ul class="pricing-features">
-            <li>Access to learning dashboard</li>
-            <li>Community discussion board</li>
-            <li>1 practice test per month</li>
-            <li>Progress tracking</li>
+          <p class="plan-for">For self-starters who want resources</p>
+          <div class="plan-price">Free</div>
+          <ul>
+            <li>Learning dashboard access</li>
+            <li>1 diagnostic assessment</li>
+            <li>3 practice tests / month</li>
+            <li>Community Q&A board</li>
           </ul>
-          <a href="/register" class="btn btn-outline-dark">Sign Up Free</a>
+          <a href="/register" class="cta-outline">Get Started</a>
         </div>
-        <div class="pricing-card popular">
-          <div class="popular-tag">Most Popular</div>
+        <div class="plan-card plan-pop">
+          <div class="plan-badge">Most Popular</div>
           <h3>Pro</h3>
-          <div class="pricing-amount">$49<span>/mo</span></div>
-          <ul class="pricing-features">
+          <p class="plan-for">For students serious about score gains</p>
+          <div class="plan-price">$49<span>/mo</span></div>
+          <ul>
             <li>Everything in Starter</li>
+            <li>4 live 1-on-1 sessions / month</li>
             <li>Unlimited practice tests</li>
             <li>Video lesson library</li>
-            <li>2 live sessions per month</li>
             <li>Priority support</li>
           </ul>
-          <a href="/register" class="btn btn-primary">Start Pro</a>
+          <a href="/register" class="cta">Start Pro</a>
         </div>
-        <div class="pricing-card">
+        <div class="plan-card">
           <h3>Elite</h3>
-          <div class="pricing-amount">$149<span>/mo</span></div>
-          <ul class="pricing-features">
+          <p class="plan-for">For maximum results, no limits</p>
+          <div class="plan-price">$149<span>/mo</span></div>
+          <ul>
             <li>Everything in Pro</li>
             <li>Unlimited live sessions</li>
-            <li>1-on-1 dedicated tutor</li>
-            <li>Custom study plans</li>
-            <li>College prep guidance</li>
+            <li>Dedicated master instructor</li>
+            <li>Custom study roadmap</li>
+            <li>Score improvement guarantee</li>
           </ul>
-          <a href="/register" class="btn btn-outline-dark">Go Elite</a>
+          <a href="/register" class="cta-outline">Go Elite</a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Contact / Newsletter Section -->
-  <section class="contact" id="contact">
-    <div class="container">
-      <div class="contact-grid">
-        <div class="contact-info">
-          <p class="section-tag">GET IN TOUCH</p>
-          <h2>Book a Consultation</h2>
-          <p>Ready to take the next step? Reach out to us and we'll match you with the perfect instructor.</p>
-          <div class="contact-details">
-            <div class="contact-item">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span>500 Francois Street, San Francisco, CA 94158</span>
-            </div>
-            <div class="contact-item">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              <span>Tel 123-456-7890</span>
-            </div>
-            <div class="contact-item">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              <span>info@geniustestboost.com</span>
-            </div>
-          </div>
-        </div>
-        <div class="newsletter-box">
-          <h3>Subscribe to Our Newsletter</h3>
-          <p>Stay updated with study tips, new courses, and exclusive offers.</p>
-          <form class="newsletter-form" id="newsletterForm">
-            <input type="email" placeholder="Enter your email" required>
-            <button type="submit" class="btn btn-primary">Join</button>
-          </form>
-          <p class="newsletter-note" id="newsletterMsg"></p>
-        </div>
-      </div>
+  <!-- CTA Banner -->
+  <section class="cta-banner">
+    <div class="wrap cta-banner-inner">
+      <h2>Ready to transform your test score?</h2>
+      <p>Join thousands of students who boosted their scores with GeniusTestBoost. Your first session is free.</p>
+      <a href="/register" class="cta cta-lg">Start Your Free Trial</a>
     </div>
   </section>
 
   <!-- Footer -->
   <footer class="footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <h3>GENIUSTESTBOOST</h3>
-          <p>Connecting people to information in engaging, interesting, and thought-provoking ways.</p>
-        </div>
-        <div class="footer-links">
-          <h4>Quick Links</h4>
-          <a href="#home">Home</a>
-          <a href="#about">About</a>
-          <a href="#services">Services</a>
-          <a href="#pricing">Pricing</a>
-        </div>
-        <div class="footer-links">
-          <h4>Account</h4>
-          <a href="/login">Log In</a>
-          <a href="/register">Register</a>
-          <a href="#contact">Contact Us</a>
-        </div>
+    <div class="wrap footer-inner">
+      <div class="footer-col footer-brand">
+        <a href="/" class="logo">Genius<span>TestBoost</span></a>
+        <p>Master instructors. Proven methods. Real results.</p>
       </div>
-      <div class="footer-bottom">
-        <p>&copy; 2025 GeniusTestBoost. All rights reserved.</p>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="#how">How It Works</a>
+        <a href="#results">Results</a>
+        <a href="#plans">Pricing</a>
       </div>
+      <div class="footer-col">
+        <h4>Account</h4>
+        <a href="/login">Log In</a>
+        <a href="/register">Sign Up</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <a href="mailto:info@geniustestboost.com">info@geniustestboost.com</a>
+        <a href="tel:+19254625600">(925) 462-5600</a>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <p>&copy; 2025 GeniusTestBoost. All rights reserved.</p>
     </div>
   </footer>
 
   <script>
-    // Navbar scroll effect
+    // Navbar scroll
+    const nav = document.getElementById('nav');
     window.addEventListener('scroll', () => {
-      const navbar = document.getElementById('navbar');
-      if (window.scrollY > 50) {
-        navbar.classList.add('scrolled');
-      } else {
-        navbar.classList.remove('scrolled');
-      }
-    });
-
-    // Mobile toggle
-    document.getElementById('navToggle').addEventListener('click', () => {
-      document.getElementById('navLinks').classList.toggle('active');
-    });
-
-    // Close mobile menu on link click
-    document.querySelectorAll('.nav-links a').forEach(link => {
-      link.addEventListener('click', () => {
-        document.getElementById('navLinks').classList.remove('active');
-      });
+      nav.classList.toggle('scrolled', window.scrollY > 40);
     });
 
     // Smooth scroll
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        const el = document.querySelector(a.getAttribute('href'));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
-    });
-
-    // Newsletter
-    document.getElementById('newsletterForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const msg = document.getElementById('newsletterMsg');
-      msg.textContent = 'Thanks for subscribing!';
-      msg.style.color = '#27ae60';
-      e.target.reset();
     });
   </script>
 
