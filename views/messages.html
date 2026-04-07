@@ -74,7 +74,7 @@
     let refreshInterval = null;
 
     async function init() {
-      const res = await fetch('/api/user');
+      const res = await fetch('/api/user', { credentials: 'include' });
       if (!res.ok) { window.location.href = '/login'; return; }
       currentUser = await res.json();
 
@@ -193,7 +193,8 @@
 
     function formatRole(role) {
       if (!role) return '';
-      if (role === 'master_teacher') return 'Admin';
+      if (role === 'owner') return 'Owner';
+      if (role === 'admin') return 'Admin';
       return role.charAt(0).toUpperCase() + role.slice(1);
     }
 
@@ -209,7 +210,7 @@
     }
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' });
       window.location.href = '/login';
     });
 

@@ -87,7 +87,7 @@
     let assignmentData = null;
 
     async function init() {
-      const userRes = await fetch('/api/user');
+      const userRes = await fetch('/api/user', { credentials: 'include' });
       if (!userRes.ok) { window.location.href = '/login'; return; }
       currentUser = await userRes.json();
 
@@ -238,7 +238,7 @@
     });
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' });
       window.location.href = '/login';
     });
 

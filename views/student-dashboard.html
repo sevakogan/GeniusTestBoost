@@ -72,7 +72,7 @@
     let currentUser = null;
 
     async function init() {
-      const res = await fetch('/api/user');
+      const res = await fetch('/api/user', { credentials: 'include' });
       if (!res.ok) { window.location.href = '/login'; return; }
       currentUser = await res.json();
       document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
@@ -82,7 +82,7 @@
     }
 
     async function loadCourses() {
-      const res = await fetch('/api/courses');
+      const res = await fetch('/api/courses', { credentials: 'include' });
       const courses = await res.json();
       const el = document.getElementById('coursesList');
 
@@ -112,7 +112,7 @@
     }
 
     async function loadGrades() {
-      const res = await fetch('/api/assignments/my-submissions');
+      const res = await fetch('/api/assignments/my-submissions', { credentials: 'include' });
       const subs = await res.json();
 
       const graded = subs.filter(s => s.grade !== null);
@@ -147,7 +147,7 @@
     }
 
     async function loadUnread() {
-      const res = await fetch('/api/messages/unread-count');
+      const res = await fetch('/api/messages/unread-count', { credentials: 'include' });
       const data = await res.json();
       const badge = document.getElementById('msg-badge');
       if (data.count > 0) { badge.textContent = data.count; badge.classList.remove('hidden'); }
@@ -155,7 +155,7 @@
 
     async function showBrowse() {
       document.getElementById('browseModal').classList.remove('hidden');
-      const res = await fetch('/api/courses/available');
+      const res = await fetch('/api/courses/available', { credentials: 'include' });
       const courses = await res.json();
       const el = document.getElementById('availableCourses');
 
@@ -183,7 +183,7 @@
     }
 
     async function enroll(courseId) {
-      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: 'POST' });
+      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: 'POST', credentials: 'include' });
       if (res.ok) {
         await loadCourses();
         showBrowse(); // Refresh the list
@@ -194,7 +194,7 @@
     }
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' });
       window.location.href = '/login';
     });
 

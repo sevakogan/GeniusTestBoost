@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard — GeniusTestBoost</title>
+  <title>Admin Dashboard - GeniusTestBoost</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
         <a href="/messages" class="dash-nav-link">Messages <span id="msg-badge" class="badge hidden">0</span></a>
         <div class="dash-user">
           <span id="userName"></span>
-          <span class="role-badge admin">Admin</span>
+          <span class="role-badge" id="roleBadge">Admin</span>
           <button id="logoutBtn" class="btn-ghost-sm">Sign Out</button>
         </div>
       </div>
@@ -30,6 +30,7 @@
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-num" id="statStudents">0</div><div class="stat-label">Students</div></div>
         <div class="stat-card"><div class="stat-num" id="statTeachers">0</div><div class="stat-label">Teachers</div></div>
+        <div class="stat-card"><div class="stat-num" id="statAdmins">0</div><div class="stat-label">Admins</div></div>
         <div class="stat-card"><div class="stat-num" id="statCourses">0</div><div class="stat-label">Courses</div></div>
         <div class="stat-card accent"><div class="stat-num" id="statPending">0</div><div class="stat-label">Pending Approvals</div></div>
       </div>
@@ -52,7 +53,8 @@
             <option value="">All Roles</option>
             <option value="student">Students</option>
             <option value="teacher">Teachers</option>
-            <option value="master_teacher">Admins</option>
+            <option value="admin">Admins</option>
+            <option value="owner">Owners</option>
           </select>
         </div>
       </div>
@@ -95,7 +97,8 @@
           <select id="editRole" class="input">
             <option value="student">Student</option>
             <option value="teacher">Teacher</option>
-            <option value="master_teacher">Master Teacher</option>
+            <option value="admin">Admin</option>
+            <option value="owner">Owner</option>
           </select>
         </div>
         <div class="modal-actions">
@@ -110,117 +113,265 @@
     let currentUser = null;
 
     async function init() {
-      const res = await fetch('/api/user');
+      const res = await fetch('/api/user', { credentials: 'include' });
       if (!res.ok) { window.location.href = '/login'; return; }
       currentUser = await res.json();
       document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+
+      const roleBadge = document.getElementById('roleBadge');
+      roleBadge.textContent = formatRole(currentUser.role);
+      roleBadge.className = 'role-badge ' + currentUser.role;
+
+      // Hide owner-only role options for admins
+      if (currentUser.role !== 'owner') {
+        const ownerOption = document.querySelector('#editRole option[value="owner"]');
+        if (ownerOption) ownerOption.remove();
+        const adminOption = document.querySelector('#editRole option[value="admin"]');
+        if (adminOption) adminOption.remove();
+      }
 
       await Promise.all([loadStats(), loadPending(), loadUsers(), loadCourses(), loadUnread()]);
     }
 
     async function loadStats() {
-      const res = await fetch('/api/admin/stats');
+      const res = await fetch('/api/admin/stats', { credentials: 'include' });
       const s = await res.json();
       document.getElementById('statStudents').textContent = s.totalStudents;
       document.getElementById('statTeachers').textContent = s.totalTeachers;
+      document.getElementById('statAdmins').textContent = (s.totalAdmins || 0) + (s.totalOwners || 0);
       document.getElementById('statCourses').textContent = s.totalCourses;
       document.getElementById('statPending').textContent = s.pendingApprovals;
     }
 
     async function loadPending() {
-      const res = await fetch('/api/admin/pending-teachers');
+      const res = await fetch('/api/admin/pending-teachers', { credentials: 'include' });
       const teachers = await res.json();
       const el = document.getElementById('pendingList');
-      if (!teachers.length) { el.innerHTML = '<p class="empty-msg">No pending approvals</p>'; return; }
-      el.innerHTML = teachers.map(t => `
-        <div class="list-item">
-          <div class="list-item-info">
-            <strong>${t.first_name} ${t.last_name}</strong>
-            <span>${t.email}</span>
-            <small>Registered ${new Date(t.created_at).toLocaleDateString()}</small>
-          </div>
-          <div class="list-item-actions">
-            <button class="btn-success-sm" onclick="approveTeacher('${t.id}')">Approve</button>
-            <button class="btn-danger-sm" onclick="rejectTeacher('${t.id}')">Reject</button>
-          </div>
-        </div>
-      `).join('');
+      if (!teachers.length) {
+        el.textContent = '';
+        const p = document.createElement('p');
+        p.className = 'empty-msg';
+        p.textContent = 'No pending approvals';
+        el.appendChild(p);
+        return;
+      }
+      el.textContent = '';
+      teachers.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'list-item';
+
+        const info = document.createElement('div');
+        info.className = 'list-item-info';
+        const strong = document.createElement('strong');
+        strong.textContent = (t.first_name || '') + ' ' + (t.last_name || '') || t.name || t.email;
+        const span = document.createElement('span');
+        span.textContent = t.email;
+        const small = document.createElement('small');
+        small.textContent = 'Registered ' + new Date(t.created_at).toLocaleDateString();
+        info.appendChild(strong);
+        info.appendChild(span);
+        info.appendChild(small);
+
+        const actions = document.createElement('div');
+        actions.className = 'list-item-actions';
+        const approveBtn = document.createElement('button');
+        approveBtn.className = 'btn-success-sm';
+        approveBtn.textContent = 'Approve';
+        approveBtn.addEventListener('click', () => approveTeacher(t.id));
+        const rejectBtn = document.createElement('button');
+        rejectBtn.className = 'btn-danger-sm';
+        rejectBtn.textContent = 'Reject';
+        rejectBtn.addEventListener('click', () => rejectTeacher(t.id));
+        actions.appendChild(approveBtn);
+        actions.appendChild(rejectBtn);
+
+        item.appendChild(info);
+        item.appendChild(actions);
+        el.appendChild(item);
+      });
     }
 
-    async function loadUsers(role = '') {
+    async function loadUsers(role) {
       let url = '/api/admin/users';
-      if (role) url += `?role=${role}`;
-      const res = await fetch(url);
+      if (role) url += '?role=' + role;
+      const res = await fetch(url, { credentials: 'include' });
       const users = await res.json();
       const tbody = document.getElementById('usersBody');
-      tbody.innerHTML = users.map(u => `
-        <tr>
-          <td>${u.first_name} ${u.last_name}</td>
-          <td>${u.email}</td>
-          <td><span class="role-badge ${u.role}">${formatRole(u.role)}</span></td>
-          <td><span class="status-dot ${u.is_approved ? 'active' : 'pending'}"></span>${u.is_approved ? 'Active' : 'Pending'}</td>
-          <td>${new Date(u.created_at).toLocaleDateString()}</td>
-          <td class="action-cell">
-            <button class="btn-ghost-sm" onclick="editUser('${u.id}')">Edit</button>
-            ${u.role !== 'master_teacher' ? `<button class="btn-ghost-sm" onclick="promoteUser('${u.id}')">Promote</button>` : ''}
-            ${u.id !== currentUser.id ? `<button class="btn-danger-sm" onclick="deleteUser('${u.id}')">Delete</button>` : ''}
-          </td>
-        </tr>
-      `).join('');
+      tbody.textContent = '';
+
+      users.forEach(u => {
+        const tr = document.createElement('tr');
+
+        const tdName = document.createElement('td');
+        tdName.textContent = ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || u.name || u.email;
+
+        const tdEmail = document.createElement('td');
+        tdEmail.textContent = u.email;
+
+        const tdRole = document.createElement('td');
+        const roleSpan = document.createElement('span');
+        roleSpan.className = 'role-badge ' + u.role;
+        roleSpan.textContent = formatRole(u.role);
+        tdRole.appendChild(roleSpan);
+
+        const tdStatus = document.createElement('td');
+        const dot = document.createElement('span');
+        dot.className = 'status-dot ' + (u.is_approved ? 'active' : 'pending');
+        tdStatus.appendChild(dot);
+        tdStatus.appendChild(document.createTextNode(u.is_approved ? 'Active' : 'Pending'));
+
+        const tdJoined = document.createElement('td');
+        tdJoined.textContent = new Date(u.created_at).toLocaleDateString();
+
+        const tdActions = document.createElement('td');
+        tdActions.className = 'action-cell';
+
+        // Edit button (admins can't edit owners/admins)
+        const canEdit = currentUser.role === 'owner' || (u.role !== 'owner' && u.role !== 'admin');
+        if (canEdit) {
+          const editBtn = document.createElement('button');
+          editBtn.className = 'btn-ghost-sm';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', () => editUser(u.id));
+          tdActions.appendChild(editBtn);
+        }
+
+        // Promote to Admin button (owner only, not for owners/admins)
+        if (currentUser.role === 'owner' && u.role !== 'owner' && u.role !== 'admin') {
+          const promoBtn = document.createElement('button');
+          promoBtn.className = 'btn-ghost-sm';
+          promoBtn.textContent = 'Make Admin';
+          promoBtn.addEventListener('click', () => promoteToAdmin(u.id));
+          tdActions.appendChild(promoBtn);
+        }
+
+        // Demote Admin button (owner only, for admins)
+        if (currentUser.role === 'owner' && u.role === 'admin') {
+          const demoteBtn = document.createElement('button');
+          demoteBtn.className = 'btn-ghost-sm';
+          demoteBtn.textContent = 'Demote';
+          demoteBtn.addEventListener('click', () => demoteAdmin(u.id));
+          tdActions.appendChild(demoteBtn);
+        }
+
+        // Delete button
+        if (u.id !== currentUser.id && canEdit) {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-danger-sm';
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', () => deleteUser(u.id));
+          tdActions.appendChild(delBtn);
+        }
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdEmail);
+        tr.appendChild(tdRole);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdJoined);
+        tr.appendChild(tdActions);
+        tbody.appendChild(tr);
+      });
     }
 
     async function loadCourses() {
-      const res = await fetch('/api/admin/courses');
+      const res = await fetch('/api/admin/courses', { credentials: 'include' });
       const courses = await res.json();
       const tbody = document.getElementById('coursesBody');
-      if (!courses.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">No courses yet</td></tr>'; return; }
-      tbody.innerHTML = courses.map(c => `
-        <tr>
-          <td><a href="/course/${c.id}">${c.name}</a></td>
-          <td>${c.teacher ? c.teacher.first_name + ' ' + c.teacher.last_name : 'Unknown'}</td>
-          <td>${c.enrollment_count || 0}</td>
-          <td><span class="status-dot ${c.is_active ? 'active' : 'inactive'}"></span>${c.is_active ? 'Active' : 'Inactive'}</td>
-          <td>${new Date(c.created_at).toLocaleDateString()}</td>
-        </tr>
-      `).join('');
+      tbody.textContent = '';
+
+      if (!courses.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 5;
+        td.className = 'empty-msg';
+        td.textContent = 'No courses yet';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      courses.forEach(c => {
+        const tr = document.createElement('tr');
+
+        const tdCourse = document.createElement('td');
+        const courseLink = document.createElement('a');
+        courseLink.href = '/course/' + c.id;
+        courseLink.textContent = c.name;
+        tdCourse.appendChild(courseLink);
+
+        const tdTeacher = document.createElement('td');
+        if (c.teacher) {
+          tdTeacher.textContent = ((c.teacher.first_name || '') + ' ' + (c.teacher.last_name || '')).trim() || c.teacher.name || 'Unknown';
+        } else {
+          tdTeacher.textContent = 'Unknown';
+        }
+
+        const tdStudents = document.createElement('td');
+        tdStudents.textContent = c.enrollment_count || 0;
+
+        const tdStatus = document.createElement('td');
+        const dot = document.createElement('span');
+        dot.className = 'status-dot ' + (c.is_active ? 'active' : 'inactive');
+        tdStatus.appendChild(dot);
+        tdStatus.appendChild(document.createTextNode(c.is_active ? 'Active' : 'Inactive'));
+
+        const tdCreated = document.createElement('td');
+        tdCreated.textContent = new Date(c.created_at).toLocaleDateString();
+
+        tr.appendChild(tdCourse);
+        tr.appendChild(tdTeacher);
+        tr.appendChild(tdStudents);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdCreated);
+        tbody.appendChild(tr);
+      });
     }
 
     async function loadUnread() {
-      const res = await fetch('/api/messages/unread-count');
+      const res = await fetch('/api/messages/unread-count', { credentials: 'include' });
       const data = await res.json();
       const badge = document.getElementById('msg-badge');
-      if (data.count > 0) { badge.textContent = data.count; badge.classList.remove('hidden'); }
+      if (data.count > 0) {
+        badge.textContent = data.count;
+        badge.classList.remove('hidden');
+      }
     }
 
     async function approveTeacher(id) {
-      await fetch(`/api/admin/users/${id}/approve`, { method: 'POST' });
+      await fetch('/api/admin/users/' + id + '/approve', { method: 'POST', credentials: 'include' });
       await Promise.all([loadPending(), loadUsers(), loadStats()]);
     }
 
     async function rejectTeacher(id) {
       if (!confirm('Reject this teacher?')) return;
-      await fetch(`/api/admin/users/${id}/reject`, { method: 'POST' });
+      await fetch('/api/admin/users/' + id + '/reject', { method: 'POST', credentials: 'include' });
       await Promise.all([loadPending(), loadUsers(), loadStats()]);
     }
 
-    async function promoteUser(id) {
-      if (!confirm('Promote this user to Master Teacher (Admin)?')) return;
-      await fetch(`/api/admin/users/${id}/promote`, { method: 'POST' });
+    async function promoteToAdmin(id) {
+      if (!confirm('Promote this user to Admin?')) return;
+      await fetch('/api/admin/users/' + id + '/promote-admin', { method: 'POST', credentials: 'include' });
       await loadUsers();
+    }
+
+    async function demoteAdmin(id) {
+      if (!confirm('Demote this admin to Teacher?')) return;
+      await fetch('/api/admin/users/' + id + '/demote-admin', { method: 'POST', credentials: 'include' });
+      await Promise.all([loadUsers(), loadStats()]);
     }
 
     async function deleteUser(id) {
       if (!confirm('Delete this user permanently?')) return;
-      await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      await fetch('/api/admin/users/' + id, { method: 'DELETE', credentials: 'include' });
       await Promise.all([loadUsers(), loadStats()]);
     }
 
     async function editUser(id) {
-      const res = await fetch(`/api/admin/users/${id}`);
+      const res = await fetch('/api/admin/users/' + id, { credentials: 'include' });
       const u = await res.json();
       document.getElementById('editId').value = u.id;
-      document.getElementById('editFirst').value = u.first_name;
-      document.getElementById('editLast').value = u.last_name;
+      document.getElementById('editFirst').value = u.first_name || '';
+      document.getElementById('editLast').value = u.last_name || '';
       document.getElementById('editEmail').value = u.email;
       document.getElementById('editRole').value = u.role;
       document.getElementById('editModal').classList.remove('hidden');
@@ -233,9 +384,10 @@
     document.getElementById('editForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('editId').value;
-      await fetch(`/api/admin/users/${id}`, {
+      await fetch('/api/admin/users/' + id, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           first_name: document.getElementById('editFirst').value,
           last_name: document.getElementById('editLast').value,
@@ -252,12 +404,15 @@
     });
 
     function formatRole(role) {
-      if (role === 'master_teacher') return 'Admin';
-      return role.charAt(0).toUpperCase() + role.slice(1);
+      if (role === 'owner') return 'Owner';
+      if (role === 'admin') return 'Admin';
+      if (role === 'teacher') return 'Teacher';
+      if (role === 'student') return 'Student';
+      return role;
     }
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' });
       window.location.href = '/login';
     });
 

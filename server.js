@@ -1,106 +1,95 @@
-require('dotenv').config();
-const express = require('express');
-const session = require('express-session');
-const path = require('path');
+import "dotenv/config";
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./lib/auth.js";
+import { requireAuth } from "./middleware/auth.js";
 
-// Route imports
-const authRoutes = require('./routes/auth');
-const courseRoutes = require('./routes/courses');
-const assignmentRoutes = require('./routes/assignments');
-const messageRoutes = require('./routes/messages');
-const adminRoutes = require('./routes/admin');
+import courseRoutes from "./routes/courses.js";
+import assignmentRoutes from "./routes/assignments.js";
+import messageRoutes from "./routes/messages.js";
+import adminRoutes from "./routes/admin.js";
+import authRoutes from "./routes/auth.js";
 
-const { requireAuth } = require('./middleware/auth');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5432;
 
+// better-auth catch-all — MUST come before express.json()
+app.all("/api/auth/*", toNodeHandler(auth));
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Session configuration
-app.use(session({
-  secret: 'onlineschool-v1-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
-
-// Make session user available to all routes
-app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
-  next();
-});
+app.use(express.static(path.join(__dirname, "public")));
 
 // API Routes
-app.use('/auth', authRoutes);
-app.use('/api/courses', courseRoutes);
-app.use('/api/assignments', assignmentRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/admin', adminRoutes);
+app.use("/auth", authRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Page routes
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'index.html'));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "index.html"));
 });
 
-app.get('/login', (req, res) => {
-  if (req.session.user) {
-    return res.redirect('/dashboard');
-  }
-  res.sendFile(path.join(__dirname, 'views', 'login.html'));
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "login.html"));
 });
 
-app.get('/register', (req, res) => {
-  if (req.session.user) {
-    return res.redirect('/dashboard');
-  }
-  res.sendFile(path.join(__dirname, 'views', 'register.html'));
+app.get("/register", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "register.html"));
 });
 
 // Role-based dashboard routing
-app.get('/dashboard', requireAuth, (req, res) => {
-  const role = req.session.user.role;
-  if (role === 'master_teacher') {
-    res.sendFile(path.join(__dirname, 'views', 'admin-dashboard.html'));
-  } else if (role === 'teacher') {
-    res.sendFile(path.join(__dirname, 'views', 'teacher-dashboard.html'));
+app.get("/dashboard", requireAuth, (req, res) => {
+  const role = req.user.role;
+  if (role === "owner" || role === "admin") {
+    res.sendFile(path.join(__dirname, "views", "admin-dashboard.html"));
+  } else if (role === "teacher") {
+    res.sendFile(path.join(__dirname, "views", "teacher-dashboard.html"));
   } else {
-    res.sendFile(path.join(__dirname, 'views', 'student-dashboard.html'));
+    res.sendFile(path.join(__dirname, "views", "student-dashboard.html"));
   }
 });
 
 // Sub-pages
-app.get('/course/:id', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'course-detail.html'));
+app.get("/course/:id", requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "course-detail.html"));
 });
 
-app.get('/assignment/:id', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'assignment-detail.html'));
+app.get("/assignment/:id", requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "assignment-detail.html"));
 });
 
-app.get('/messages', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'messages.html'));
+app.get("/messages", requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "messages.html"));
 });
 
-// API endpoint to get current user info
-app.get('/api/user', (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-  res.json(req.session.user);
+// API endpoint to get current user info (uses better-auth session)
+app.get("/api/user", requireAuth, (req, res) => {
+  res.json({
+    id: req.user.id,
+    firstName: req.user.first_name || req.user.name?.split(" ")[0] || "",
+    lastName: req.user.last_name || req.user.name?.split(" ").slice(1).join(" ") || "",
+    email: req.user.email,
+    role: req.user.role,
+    isApproved: req.user.is_approved,
+    image: req.user.image,
+  });
 });
 
 // Local development
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => {
-    console.log(`OnlineSchool V1 running at http://localhost:${PORT}`);
+    console.log(`GeniusTestBoost running at http://localhost:${PORT}`);
   });
 }
 
 // Export for Vercel
-module.exports = app;
+export default app;

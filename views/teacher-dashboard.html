@@ -82,7 +82,7 @@
     let currentUser = null;
 
     async function init() {
-      const res = await fetch('/api/user');
+      const res = await fetch('/api/user', { credentials: 'include' });
       if (!res.ok) { window.location.href = '/login'; return; }
       currentUser = await res.json();
       document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
@@ -98,7 +98,7 @@
     }
 
     async function loadCourses() {
-      const res = await fetch('/api/courses');
+      const res = await fetch('/api/courses', { credentials: 'include' });
       const courses = await res.json();
       const el = document.getElementById('coursesList');
 
@@ -137,7 +137,7 @@
     }
 
     async function loadPendingGrades() {
-      const res = await fetch('/api/assignments/pending-grading');
+      const res = await fetch('/api/assignments/pending-grading', { credentials: 'include' });
       const subs = await res.json();
       const el = document.getElementById('pendingGrades');
       document.getElementById('statPending').textContent = subs.length;
@@ -159,7 +159,7 @@
     }
 
     async function loadUnread() {
-      const res = await fetch('/api/messages/unread-count');
+      const res = await fetch('/api/messages/unread-count', { credentials: 'include' });
       const data = await res.json();
       const badge = document.getElementById('msg-badge');
       if (data.count > 0) { badge.textContent = data.count; badge.classList.remove('hidden'); }
@@ -198,16 +198,16 @@
       };
 
       if (id) {
-        await fetch(`/api/courses/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        await fetch(`/api/courses/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) });
       } else {
-        await fetch('/api/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        await fetch('/api/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) });
       }
       closeModal();
       await loadCourses();
     });
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' });
       window.location.href = '/login';
     });
 

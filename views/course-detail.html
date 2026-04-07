@@ -86,7 +86,7 @@
     let courseId = window.location.pathname.split('/course/')[1];
 
     async function init() {
-      const userRes = await fetch('/api/user');
+      const userRes = await fetch('/api/user', { credentials: 'include' });
       if (!userRes.ok) { window.location.href = '/login'; return; }
       currentUser = await userRes.json();
 
@@ -118,7 +118,7 @@
         }
       }
 
-      if (role === 'teacher' || role === 'master_teacher') {
+      if (['teacher', 'owner', 'admin'].includes(role)) {
         document.getElementById('addAssignmentBtn').innerHTML = `<button class="btn-primary" onclick="showCreateAssignment()">+ Add Assignment</button>`;
         document.getElementById('studentsSection').classList.remove('hidden');
         await loadStudents();
@@ -148,7 +148,7 @@
           statusHtml = `<span class="status-pill pending">Not submitted</span>`;
         }
 
-        if (role === 'teacher' || role === 'master_teacher') {
+        if (['teacher', 'owner', 'admin'].includes(role)) {
           statusHtml = `<span class="meta-text">${a.submission_count || 0} submissions • ${a.ungraded_count || 0} ungraded</span>`;
         }
 
@@ -230,7 +230,7 @@
     });
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' });
       window.location.href = '/login';
     });
 
