@@ -7,6 +7,59 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .search-wrap { position: relative; }
+    .search-results {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; max-height: 220px; overflow-y: auto; display: none;
+    }
+    .search-results.active { display: block; }
+    .search-item {
+      padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .search-item:hover { background: rgba(201,168,76,0.1); }
+    .search-item strong { display: block; font-size: 14px; }
+    .search-item small { color: rgba(255,255,255,0.4); font-size: 12px; }
+    .search-item.create-new { color: #C9A84C; font-weight: 600; border-bottom: none; }
+
+    .selected-student {
+      display: flex; align-items: center; gap: 16px;
+      background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;
+    }
+    .selected-student .student-info { flex: 1; }
+    .selected-student .student-info strong { font-size: 15px; }
+    .selected-student .student-info span { display: block; font-size: 12px; color: rgba(255,255,255,0.5); }
+    .selected-student .btn-change { background: none; border: 1px solid rgba(255,255,255,0.15); color: #e0e0e8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+
+    .new-student-fields { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+
+    .inline-section { margin-bottom: 24px; }
+    .inline-section h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.35); margin-bottom: 12px; }
+
+    .totals-section { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; margin-top: 20px; }
+    .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: rgba(255,255,255,0.5); }
+    .totals-row.discount-row span:last-child { color: #27ae60; }
+    .totals-row.total-row { border-top: 1px solid rgba(255,255,255,0.1); margin-top: 8px; padding-top: 12px; font-size: 20px; font-weight: 700; color: #C9A84C; }
+
+    .fee-options { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+    .fee-option { display: flex; align-items: center; gap: 8px; }
+    .fee-option input[type=checkbox] { width: 18px; height: 18px; }
+    .fee-option label { margin: 0; cursor: pointer; font-size: 14px; }
+
+    .discount-row-inputs { display: flex; gap: 10px; align-items: end; }
+    .discount-row-inputs .form-group { flex: 1; }
+    .discount-type-toggle {
+      display: flex; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden;
+    }
+    .discount-type-toggle button {
+      padding: 8px 16px; background: transparent; border: none; color: rgba(255,255,255,0.4);
+      cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; transition: all 0.15s;
+    }
+    .discount-type-toggle button.active { background: #C9A84C; color: #000; }
+  </style>
 </head>
 <body>
   <nav class="dash-nav">
@@ -30,82 +83,128 @@
       <h2>Create Invoice</h2>
       <div class="invoice-form-card">
         <form id="invoiceForm">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Student Email *</label>
-              <input type="email" id="custEmail" class="input" placeholder="student@example.com" required>
+
+          <!-- Step 1: Student -->
+          <div class="inline-section">
+            <h3>Student</h3>
+            <div id="studentSearch" class="search-wrap">
+              <input type="text" id="studentQuery" class="input" placeholder="Start typing student name..." autocomplete="off">
+              <div class="search-results" id="searchResults"></div>
             </div>
-            <div class="form-group">
-              <label>Student Name</label>
-              <input type="text" id="custName" class="input" placeholder="John Doe">
+            <div id="selectedStudent" class="selected-student" style="display:none">
+              <div class="student-info">
+                <strong id="selName">-</strong>
+                <span id="selDetail">-</span>
+              </div>
+              <button type="button" class="btn-change" onclick="clearStudent()">Change</button>
             </div>
+            <div id="newStudentFields" class="new-student-fields" style="display:none">
+              <div class="form-row">
+                <div class="form-group"><label>Full Name *</label><input type="text" id="newName" class="input" placeholder="John Doe"></div>
+                <div class="form-group"><label>Email *</label><input type="email" id="newEmail" class="input" placeholder="student@email.com"></div>
+              </div>
+              <div class="form-group"><label>Phone</label><input type="tel" id="newPhone" class="input" placeholder="(240) 346-8306"></div>
+              <button type="button" class="btn-primary" style="margin-top:8px" onclick="createNewStudent()">Add Student</button>
+            </div>
+            <input type="hidden" id="custEmail">
+            <input type="hidden" id="custName">
           </div>
 
-          <div class="form-group">
-            <label>Session Description</label>
-            <input type="text" id="description" class="input" placeholder="SAT Math Prep">
-          </div>
-
-          <div class="form-row">
+          <!-- Step 2: Due Date -->
+          <div class="inline-section" id="step2" style="display:none">
+            <h3>Due Date</h3>
             <div class="form-group">
-              <label>Number of Hours *</label>
-              <input type="number" id="hours" class="input" step="0.5" min="0.5" placeholder="5" required>
-            </div>
-            <div class="form-group">
-              <label>Rate per Hour ($) *</label>
-              <input type="number" id="ratePerHour" class="input" step="0.01" min="1" placeholder="75.00" required>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Extra Fee ($)</label>
-              <input type="number" id="extraFee" class="input" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-              <label>Fee Label</label>
-              <input type="text" id="extraFeeLabel" class="input" placeholder="Materials / Registration">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Discount ($)</label>
-              <input type="number" id="discount" class="input" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-              <label>Discount Label</label>
-              <input type="text" id="discountLabel" class="input" placeholder="Multi-session discount">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Sales Tax (%)</label>
-              <input type="number" id="taxRate" class="input" step="0.01" min="0" max="15" placeholder="0 (e.g. 7 for 7%)">
-            </div>
-            <div class="form-group">
-              <label>Due Date</label>
               <input type="date" id="dueDate" class="input">
             </div>
-            <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:24px">
-              <input type="checkbox" id="passFee" style="width:18px;height:18px">
-              <label for="passFee" style="margin:0;cursor:pointer">Pass processing fee to student</label>
+          </div>
+
+          <!-- Step 3: Session Details -->
+          <div class="inline-section" id="step3" style="display:none">
+            <h3>Session Details</h3>
+            <div class="form-group">
+              <label>Class Name</label>
+              <input type="text" id="className" class="input" placeholder="SAT Math Prep">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <input type="text" id="description" class="input" placeholder="Weekly practice sessions">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Number of Hours</label>
+                <input type="number" id="hours" class="input" step="0.5" min="0.5" placeholder="5" required>
+              </div>
+              <div class="form-group">
+                <label>Rate per Hour ($)</label>
+                <input type="number" id="ratePerHour" class="input" step="0.01" min="1" placeholder="75.00" required>
+              </div>
             </div>
           </div>
 
-          <!-- Live Total Preview -->
-          <div class="invoice-preview-totals" id="totalsPreview">
-            <div class="preview-line"><span>Subtotal</span><span id="prevSubtotal">$0.00</span></div>
-            <div class="preview-line" id="prevExtraRow" style="display:none"><span id="prevExtraLabel">Extra Fee</span><span id="prevExtra">$0.00</span></div>
-            <div class="preview-line discount" id="prevDiscountRow" style="display:none"><span id="prevDiscountLabel">Discount</span><span id="prevDiscount">-$0.00</span></div>
-            <div class="preview-line" id="prevTaxRow" style="display:none"><span id="prevTaxLabel">Sales Tax</span><span id="prevTax">$0.00</span></div>
-            <div class="preview-line" id="prevFeeRow" style="display:none"><span>Processing Fee</span><span id="prevFee">$0.00</span></div>
-            <div class="preview-line total"><span>Total</span><span id="prevTotal">$0.00</span></div>
+          <!-- Step 4: Totals & Fees (bottom right feel) -->
+          <div class="inline-section" id="step4" style="display:none">
+            <div style="display:flex;gap:24px;flex-wrap:wrap">
+              <div style="flex:1;min-width:250px">
+                <h3>Adjustments</h3>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Extra Fee ($)</label>
+                    <input type="number" id="extraFee" class="input" step="0.01" min="0" placeholder="0.00">
+                  </div>
+                  <div class="form-group">
+                    <label>Fee Label</label>
+                    <input type="text" id="extraFeeLabel" class="input" placeholder="Materials">
+                  </div>
+                </div>
+
+                <label style="font-size:13px;margin-bottom:6px;display:block">Discount</label>
+                <div class="discount-row-inputs">
+                  <div class="form-group" style="max-width:80px">
+                    <div class="discount-type-toggle">
+                      <button type="button" id="discFlat" class="active" onclick="setDiscountType('flat')">$</button>
+                      <button type="button" id="discPct" onclick="setDiscountType('percent')">%</button>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <input type="number" id="discountValue" class="input" step="0.01" min="0" placeholder="0">
+                  </div>
+                  <div class="form-group">
+                    <input type="text" id="discountLabel" class="input" placeholder="Multi-session discount">
+                  </div>
+                </div>
+
+                <div style="margin-top:16px">
+                  <div class="form-group">
+                    <label>Sales Tax (%)</label>
+                    <input type="number" id="taxRate" class="input" step="0.01" min="0" max="15" placeholder="0">
+                  </div>
+                </div>
+
+                <div class="fee-options" style="margin-top:12px">
+                  <div class="fee-option">
+                    <input type="checkbox" id="passFee">
+                    <label for="passFee">Pass processing fee to student</label>
+                  </div>
+                </div>
+              </div>
+
+              <div style="flex:1;min-width:280px">
+                <h3>Summary</h3>
+                <div class="totals-section" id="totalsPreview">
+                  <div class="totals-row"><span>Subtotal</span><span id="prevSubtotal">$0.00</span></div>
+                  <div class="totals-row" id="prevExtraRow" style="display:none"><span id="prevExtraLabel">Extra Fee</span><span id="prevExtra">$0.00</span></div>
+                  <div class="totals-row discount-row" id="prevDiscountRow" style="display:none"><span id="prevDiscountLabel">Discount</span><span id="prevDiscount">-$0.00</span></div>
+                  <div class="totals-row" id="prevTaxRow" style="display:none"><span id="prevTaxLabel">Tax</span><span id="prevTax">$0.00</span></div>
+                  <div class="totals-row" id="prevFeeRow" style="display:none"><span>Processing Fee</span><span id="prevFee">$0.00</span></div>
+                  <div class="totals-row total-row"><span>Total</span><span id="prevTotal">$0.00</span></div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="createBtn" style="width:100%;margin-top:16px" disabled>Create Invoice</button>
+              </div>
+            </div>
           </div>
 
           <div id="invoiceError" class="error-message"></div>
-          <button type="submit" class="btn-primary" id="createBtn">Create Invoice</button>
         </form>
       </div>
     </section>
@@ -116,15 +215,7 @@
       <div class="table-wrap">
         <table class="data-table">
           <thead>
-            <tr>
-              <th>#</th>
-              <th>Student</th>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Due</th>
-              <th>Actions</th>
-            </tr>
+            <tr><th>#</th><th>Student</th><th>Class</th><th>Amount</th><th>Status</th><th>Due</th><th>Actions</th></tr>
           </thead>
           <tbody id="invoicesBody"></tbody>
         </table>
@@ -134,24 +225,39 @@
 
   <script>
     let currentUser = null;
+    let selectedStudentData = null;
+    let discountType = 'flat';
+    let searchTimeout = null;
 
     async function init() {
       const res = await fetch('/api/user', { credentials: 'include' });
       if (!res.ok) { window.location.href = '/login'; return; }
       currentUser = await res.json();
 
-      // Set default due date to 30 days from now
       const d = new Date();
       d.setDate(d.getDate() + 30);
       document.getElementById('dueDate').value = d.toISOString().split('T')[0];
 
-      setupLivePreview();
+      setupListeners();
       await loadInvoices();
     }
 
-    function setupLivePreview() {
-      const fields = ['hours', 'ratePerHour', 'extraFee', 'discount', 'passFee', 'taxRate'];
-      fields.forEach(id => {
+    function setupListeners() {
+      const q = document.getElementById('studentQuery');
+      q.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => searchStudents(q.value), 300);
+      });
+      q.addEventListener('focus', () => {
+        if (q.value.length >= 2) searchStudents(q.value);
+      });
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-wrap')) {
+          document.getElementById('searchResults').classList.remove('active');
+        }
+      });
+
+      ['hours', 'ratePerHour', 'extraFee', 'discountValue', 'taxRate', 'passFee'].forEach(id => {
         const el = document.getElementById(id);
         el.addEventListener('input', updatePreview);
         el.addEventListener('change', updatePreview);
@@ -160,19 +266,132 @@
       document.getElementById('discountLabel').addEventListener('input', updatePreview);
     }
 
+    async function searchStudents(query) {
+      const results = document.getElementById('searchResults');
+      if (query.length < 2) { results.classList.remove('active'); return; }
+
+      const res = await fetch('/api/invoices/search-students?q=' + encodeURIComponent(query), { credentials: 'include' });
+      const students = await res.json();
+
+      results.textContent = '';
+
+      students.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'search-item';
+        const strong = document.createElement('strong');
+        strong.textContent = s.name || ((s.firstName || '') + ' ' + (s.lastName || '')).trim();
+        const small = document.createElement('small');
+        small.textContent = s.email + (s.phone ? ' | ' + s.phone : '');
+        div.appendChild(strong);
+        div.appendChild(small);
+        div.addEventListener('click', () => selectStudent(s));
+        results.appendChild(div);
+      });
+
+      // "Create new" option
+      const createDiv = document.createElement('div');
+      createDiv.className = 'search-item create-new';
+      createDiv.textContent = '+ Create new student "' + query + '"';
+      createDiv.addEventListener('click', () => showNewStudentForm(query));
+      results.appendChild(createDiv);
+
+      results.classList.add('active');
+    }
+
+    function selectStudent(student) {
+      selectedStudentData = student;
+      document.getElementById('custEmail').value = student.email;
+      document.getElementById('custName').value = student.name || ((student.firstName || '') + ' ' + (student.lastName || '')).trim();
+
+      document.getElementById('selName').textContent = student.name || ((student.firstName || '') + ' ' + (student.lastName || '')).trim();
+      document.getElementById('selDetail').textContent = student.email + (student.phone ? ' | ' + student.phone : '');
+
+      document.getElementById('studentSearch').style.display = 'none';
+      document.getElementById('newStudentFields').style.display = 'none';
+      document.getElementById('selectedStudent').style.display = 'flex';
+      document.getElementById('searchResults').classList.remove('active');
+
+      showRemainingSteps();
+    }
+
+    function clearStudent() {
+      selectedStudentData = null;
+      document.getElementById('custEmail').value = '';
+      document.getElementById('custName').value = '';
+      document.getElementById('studentQuery').value = '';
+      document.getElementById('studentSearch').style.display = '';
+      document.getElementById('selectedStudent').style.display = 'none';
+      hideRemainingSteps();
+    }
+
+    function showNewStudentForm(prefill) {
+      document.getElementById('newName').value = prefill;
+      document.getElementById('newEmail').value = '';
+      document.getElementById('newPhone').value = '';
+      document.getElementById('newStudentFields').style.display = '';
+      document.getElementById('searchResults').classList.remove('active');
+    }
+
+    async function createNewStudent() {
+      const name = document.getElementById('newName').value.trim();
+      const email = document.getElementById('newEmail').value.trim();
+      const phone = document.getElementById('newPhone').value.trim();
+      if (!name || !email) { alert('Name and email are required'); return; }
+
+      const res = await fetch('/api/invoices/create-student', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name, email, phone })
+      });
+      const data = await res.json();
+      if (data.student) {
+        selectStudent({ ...data.student, phone });
+      } else {
+        alert(data.error || 'Failed to create student');
+      }
+    }
+
+    function showRemainingSteps() {
+      document.getElementById('step2').style.display = '';
+      document.getElementById('step3').style.display = '';
+      document.getElementById('step4').style.display = '';
+      document.getElementById('createBtn').disabled = false;
+    }
+
+    function hideRemainingSteps() {
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step3').style.display = 'none';
+      document.getElementById('step4').style.display = 'none';
+      document.getElementById('createBtn').disabled = true;
+    }
+
+    function setDiscountType(type) {
+      discountType = type;
+      document.getElementById('discFlat').className = type === 'flat' ? 'active' : '';
+      document.getElementById('discPct').className = type === 'percent' ? 'active' : '';
+      updatePreview();
+    }
+
     function updatePreview() {
       const hours = parseFloat(document.getElementById('hours').value) || 0;
       const rate = parseFloat(document.getElementById('ratePerHour').value) || 0;
       const extra = parseFloat(document.getElementById('extraFee').value) || 0;
-      const disc = parseFloat(document.getElementById('discount').value) || 0;
+      const discVal = parseFloat(document.getElementById('discountValue').value) || 0;
+      const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
       const passFee = document.getElementById('passFee').checked;
 
-      const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
-
       const subtotal = hours * rate;
-      const preDiscount = subtotal + extra - disc;
-      const taxAmount = preDiscount * (taxRate / 100);
-      const preTotal = preDiscount + taxAmount;
+      let disc = 0;
+      if (discountType === 'percent' && discVal > 0) {
+        disc = (subtotal + extra) * (discVal / 100);
+      } else {
+        disc = discVal;
+      }
+
+      const preTax = subtotal + extra - disc;
+      const tax = preTax * (taxRate / 100);
+      const preTotal = preTax + tax;
 
       let fee = 0;
       if (passFee && preTotal > 0) {
@@ -187,35 +406,26 @@
         extraRow.style.display = '';
         document.getElementById('prevExtra').textContent = '$' + extra.toFixed(2);
         document.getElementById('prevExtraLabel').textContent = document.getElementById('extraFeeLabel').value || 'Extra Fee';
-      } else {
-        extraRow.style.display = 'none';
-      }
+      } else { extraRow.style.display = 'none'; }
 
       const discRow = document.getElementById('prevDiscountRow');
       if (disc > 0) {
         discRow.style.display = '';
         document.getElementById('prevDiscount').textContent = '-$' + disc.toFixed(2);
-        document.getElementById('prevDiscountLabel').textContent = document.getElementById('discountLabel').value || 'Discount';
-      } else {
-        discRow.style.display = 'none';
-      }
+        const lbl = document.getElementById('discountLabel').value || 'Discount';
+        document.getElementById('prevDiscountLabel').textContent = lbl + (discountType === 'percent' ? ' (' + discVal + '%)' : '');
+      } else { discRow.style.display = 'none'; }
 
       const taxRow = document.getElementById('prevTaxRow');
-      if (taxAmount > 0) {
+      if (tax > 0) {
         taxRow.style.display = '';
-        document.getElementById('prevTax').textContent = '$' + taxAmount.toFixed(2);
+        document.getElementById('prevTax').textContent = '$' + tax.toFixed(2);
         document.getElementById('prevTaxLabel').textContent = 'Sales Tax (' + taxRate + '%)';
-      } else {
-        taxRow.style.display = 'none';
-      }
+      } else { taxRow.style.display = 'none'; }
 
       const feeRow = document.getElementById('prevFeeRow');
-      if (fee > 0) {
-        feeRow.style.display = '';
-        document.getElementById('prevFee').textContent = '$' + fee.toFixed(2);
-      } else {
-        feeRow.style.display = 'none';
-      }
+      if (fee > 0) { feeRow.style.display = ''; document.getElementById('prevFee').textContent = '$' + fee.toFixed(2); }
+      else { feeRow.style.display = 'none'; }
 
       document.getElementById('prevTotal').textContent = '$' + total.toFixed(2);
     }
@@ -232,7 +442,7 @@
         const td = document.createElement('td');
         td.colSpan = 7;
         td.className = 'empty-msg';
-        td.textContent = 'No invoices yet. Create your first one above.';
+        td.textContent = 'No invoices yet';
         tr.appendChild(td);
         tbody.appendChild(tr);
         return;
@@ -248,30 +458,23 @@
 
         const tdNum = document.createElement('td');
         tdNum.textContent = '#' + String(inv.invoice_number).padStart(4, '0');
-        tdNum.style.fontWeight = '600';
-        tdNum.style.opacity = '0.6';
+        tdNum.style.opacity = '0.5';
 
-        const tdCustomer = document.createElement('td');
-        const nameEl = document.createElement('strong');
-        nameEl.textContent = inv.customer_name || inv.customer_email;
-        tdCustomer.appendChild(nameEl);
+        const tdStudent = document.createElement('td');
+        tdStudent.textContent = inv.customer_name || inv.customer_email;
 
-        const tdDesc = document.createElement('td');
-        tdDesc.textContent = inv.description || '';
-        tdDesc.style.maxWidth = '200px';
-        tdDesc.style.overflow = 'hidden';
-        tdDesc.style.textOverflow = 'ellipsis';
-        tdDesc.style.whiteSpace = 'nowrap';
+        const tdClass = document.createElement('td');
+        tdClass.textContent = inv.class_name || inv.description || '';
 
         const tdAmount = document.createElement('td');
         tdAmount.textContent = '$' + (inv.total / 100).toFixed(2);
         tdAmount.style.fontWeight = '600';
 
         const tdStatus = document.createElement('td');
-        const statusSpan = document.createElement('span');
-        statusSpan.className = 'status-pill ' + inv.status;
-        statusSpan.textContent = inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
-        tdStatus.appendChild(statusSpan);
+        const badge = document.createElement('span');
+        badge.className = 'status-pill ' + inv.status;
+        badge.textContent = inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
+        tdStatus.appendChild(badge);
 
         const tdDue = document.createElement('td');
         tdDue.textContent = inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '-';
@@ -285,12 +488,6 @@
           sendBtn.textContent = 'Send';
           sendBtn.addEventListener('click', (e) => { e.stopPropagation(); sendInvoice(inv.id); });
           tdActions.appendChild(sendBtn);
-
-          const voidBtn = document.createElement('button');
-          voidBtn.className = 'btn-danger-sm';
-          voidBtn.textContent = 'Void';
-          voidBtn.addEventListener('click', (e) => { e.stopPropagation(); voidInvoice(inv.id); });
-          tdActions.appendChild(voidBtn);
         }
 
         if (inv.status === 'sent' && inv.stripe_hosted_url) {
@@ -305,8 +502,8 @@
         }
 
         tr.appendChild(tdNum);
-        tr.appendChild(tdCustomer);
-        tr.appendChild(tdDesc);
+        tr.appendChild(tdStudent);
+        tr.appendChild(tdClass);
         tr.appendChild(tdAmount);
         tr.appendChild(tdStatus);
         tr.appendChild(tdDue);
@@ -317,6 +514,8 @@
 
     document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!document.getElementById('custEmail').value) { alert('Select a student first'); return; }
+
       const errEl = document.getElementById('invoiceError');
       errEl.classList.remove('visible');
       const btn = document.getElementById('createBtn');
@@ -331,12 +530,14 @@
           body: JSON.stringify({
             customer_email: document.getElementById('custEmail').value,
             customer_name: document.getElementById('custName').value,
+            class_name: document.getElementById('className').value,
             description: document.getElementById('description').value,
             hours: document.getElementById('hours').value,
             rate_per_hour: document.getElementById('ratePerHour').value,
             extra_fee: document.getElementById('extraFee').value || '0',
             extra_fee_label: document.getElementById('extraFeeLabel').value,
-            discount: document.getElementById('discount').value || '0',
+            discount_value: document.getElementById('discountValue').value || '0',
+            discount_type: discountType,
             discount_label: document.getElementById('discountLabel').value,
             tax_rate: document.getElementById('taxRate').value || '0',
             pass_merchant_fee: document.getElementById('passFee').checked,
@@ -346,11 +547,14 @@
 
         const result = await res.json();
         if (res.ok && result.success) {
+          // Reset form
+          clearStudent();
           document.getElementById('invoiceForm').reset();
-          // Reset due date
-          const d = new Date();
-          d.setDate(d.getDate() + 30);
+          const d = new Date(); d.setDate(d.getDate() + 30);
           document.getElementById('dueDate').value = d.toISOString().split('T')[0];
+          discountType = 'flat';
+          document.getElementById('discFlat').className = 'active';
+          document.getElementById('discPct').className = '';
           updatePreview();
           await loadInvoices();
         } else {
@@ -369,16 +573,8 @@
     async function sendInvoice(id) {
       if (!confirm('Send this invoice to the student?')) return;
       const res = await fetch('/api/invoices/' + id + '/send', { method: 'POST', credentials: 'include' });
-      const result = await res.json();
       if (res.ok) { await loadInvoices(); }
-      else { alert(result.error || 'Failed to send'); }
-    }
-
-    async function voidInvoice(id) {
-      if (!confirm('Void this invoice? This cannot be undone.')) return;
-      const res = await fetch('/api/invoices/' + id + '/void', { method: 'POST', credentials: 'include' });
-      if (res.ok) { await loadInvoices(); }
-      else { const r = await res.json(); alert(r.error || 'Failed to void'); }
+      else { const r = await res.json(); alert(r.error || 'Failed to send'); }
     }
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {

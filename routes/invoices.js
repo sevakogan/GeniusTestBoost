@@ -13,6 +13,79 @@ const STRIPE_PROCESSING_FIXED = 30; // 30 cents
 
 router.use(requireAuth);
 
+// GET /api/invoices/search-students?q= — Search students by name/email
+router.get(
+  "/search-students",
+  requireRole("owner", "admin"),
+  async (req, res) => {
+    try {
+      const q = (req.query.q || "").trim();
+      if (q.length < 2) return res.json([]);
+
+      const { data, error } = await supabase
+        .from("user")
+        .select("id, name, email, phone, firstName, lastName")
+        .or(`name.ilike.%${q}%,email.ilike.%${q}%,firstName.ilike.%${q}%,lastName.ilike.%${q}%`)
+        .limit(10);
+
+      if (error) throw error;
+      res.json(data || []);
+    } catch (err) {
+      console.error("Search students error:", err);
+      res.status(500).json({ error: "Search failed" });
+    }
+  }
+);
+
+// POST /api/invoices/create-student — Create a new student on the fly
+router.post(
+  "/create-student",
+  requireRole("owner", "admin"),
+  async (req, res) => {
+    try {
+      const { name, email, phone } = req.body;
+      if (!name || !email) {
+        return res.status(400).json({ error: "Name and email are required" });
+      }
+
+      // Check if student already exists
+      const { data: existing } = await supabase
+        .from("user")
+        .select("id, name, email, phone")
+        .eq("email", email)
+        .single();
+
+      if (existing) return res.json({ student: existing, existed: true });
+
+      const parts = name.split(" ");
+      const firstName = parts[0] || "";
+      const lastName = parts.slice(1).join(" ") || "";
+
+      const { data: student, error } = await supabase
+        .from("user")
+        .insert({
+          id: crypto.randomUUID().replace(/-/g, "").slice(0, 32),
+          name,
+          email,
+          phone: phone || "",
+          firstName,
+          lastName,
+          role: "student",
+          isApproved: true,
+          emailVerified: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json({ student, existed: false });
+    } catch (err) {
+      console.error("Create student error:", err);
+      res.status(500).json({ error: "Failed to create student" });
+    }
+  }
+);
+
 // GET /api/invoices/my — Student sees their invoices (matched by email)
 router.get("/my", async (req, res) => {
   try {
@@ -81,9 +154,11 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
       description,
       hours,
       rate_per_hour,
+      class_name,
       extra_fee,
       extra_fee_label,
-      discount,
+      discount_value,
+      discount_type,
       discount_label,
       tax_rate,
       pass_merchant_fee,
@@ -93,16 +168,24 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
     if (!customer_email || !hours || !rate_per_hour) {
       return res
         .status(400)
-        .json({ error: "Customer email, hours, and rate are required" });
+        .json({ error: "Student, hours, and rate are required" });
     }
 
     const hoursNum = parseFloat(hours);
     const rateNum = parseFloat(rate_per_hour);
     const subtotalCents = Math.round(hoursNum * rateNum * 100);
     const extraFeeCents = Math.round(parseFloat(extra_fee || 0) * 100);
-    const discountCents = Math.round(parseFloat(discount || 0) * 100);
-    const taxRateNum = parseFloat(tax_rate || 0);
 
+    // Discount: percentage or flat
+    let discountCents = 0;
+    const discountVal = parseFloat(discount_value || 0);
+    if (discount_type === "percent" && discountVal > 0) {
+      discountCents = Math.round((subtotalCents + extraFeeCents) * (discountVal / 100));
+    } else if (discountVal > 0) {
+      discountCents = Math.round(discountVal * 100);
+    }
+
+    const taxRateNum = parseFloat(tax_rate || 0);
     const preTax = subtotalCents + extraFeeCents - discountCents;
     const taxAmountCents = Math.round(preTax * (taxRateNum / 100));
     let preTotal = preTax + taxAmountCents;
@@ -148,7 +231,8 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
         amount: subtotalCents,
         currency: "usd",
         description:
-          (description || "Tutoring Session") +
+          (class_name || "Tutoring Session") +
+          (description ? ` — ${description}` : "") +
           ` (${hoursNum} hr${hoursNum !== 1 ? "s" : ""} x $${rateNum.toFixed(2)}/hr)`,
       },
       { stripeAccount: CONNECTED_ACCOUNT }
@@ -230,7 +314,8 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
         stripe_hosted_url: stripeInvoice.hosted_invoice_url,
         customer_email,
         customer_name: customer_name || "",
-        description: description || "Tutoring Session",
+        class_name: class_name || "",
+        description: description || "",
         hours: hoursNum,
         rate_per_hour: rateNum,
         subtotal: subtotalCents,
