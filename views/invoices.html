@@ -158,11 +158,11 @@
             <div class="form-row">
               <div class="form-group">
                 <label>Number of Hours</label>
-                <input type="number" id="hours" class="input" step="0.5" min="0.5" placeholder="5" required>
+                <input type="number" id="hours" class="input" step="0.5" min="0.5" placeholder="5">
               </div>
               <div class="form-group">
                 <label>Rate per Hour ($)</label>
-                <input type="number" id="ratePerHour" class="input" step="0.01" min="1" placeholder="75.00" required>
+                <input type="number" id="ratePerHour" class="input" step="0.01" min="1" placeholder="75.00">
               </div>
             </div>
           </div>
@@ -631,6 +631,7 @@
     document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!document.getElementById('custEmail').value) { alert('Select a student first'); return; }
+      if (!document.getElementById('hours').value || !document.getElementById('ratePerHour').value) { alert('Hours and rate are required'); return; }
 
       const errEl = document.getElementById('invoiceError');
       errEl.classList.remove('visible');
