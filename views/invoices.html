@@ -587,26 +587,35 @@
           confirmBtn.textContent = 'Sending...';
           confirmBtn.disabled = true;
 
-          const invoiceUrl = window.location.origin + '/invoice/' + inv.id;
-
-          if (doEmail) {
-            // Finalize on Stripe + send email
-            await fetch('/api/invoices/' + inv.id + '/send', { method: 'POST', credentials: 'include' });
+          // Always finalize the invoice first (needed for payment link to work)
+          if (inv.status === 'draft') {
+            const sendRes = await fetch('/api/invoices/' + inv.id + '/send', { method: 'POST', credentials: 'include' });
+            if (!sendRes.ok) {
+              const err = await sendRes.json();
+              alert(err.error || 'Failed to finalize invoice');
+              confirmBtn.textContent = 'Send Now';
+              confirmBtn.disabled = false;
+              return;
+            }
           }
 
           if (doSms) {
+            const invoiceUrl = window.location.origin + '/invoice/' + inv.id;
             await navigator.clipboard.writeText(invoiceUrl);
+          }
+
+          if (doSms && !doEmail) {
             confirmBtn.textContent = 'Link Copied!';
             setTimeout(() => {
               confirmBtn.textContent = 'Send Now';
               confirmBtn.disabled = false;
               dropdown.classList.remove('active');
+              loadInvoices();
             }, 2000);
           } else {
             dropdown.classList.remove('active');
+            await loadInvoices();
           }
-
-          await loadInvoices();
         });
 
         dropdown.appendChild(smsRow);
