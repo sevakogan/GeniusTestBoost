@@ -85,6 +85,7 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
       extra_fee_label,
       discount,
       discount_label,
+      tax_rate,
       pass_merchant_fee,
       due_date,
     } = req.body;
@@ -100,8 +101,11 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
     const subtotalCents = Math.round(hoursNum * rateNum * 100);
     const extraFeeCents = Math.round(parseFloat(extra_fee || 0) * 100);
     const discountCents = Math.round(parseFloat(discount || 0) * 100);
+    const taxRateNum = parseFloat(tax_rate || 0);
 
-    let preTotal = subtotalCents + extraFeeCents - discountCents;
+    const preTax = subtotalCents + extraFeeCents - discountCents;
+    const taxAmountCents = Math.round(preTax * (taxRateNum / 100));
+    let preTotal = preTax + taxAmountCents;
 
     // Calculate merchant fee if passing to customer
     let merchantFeeCents = 0;
@@ -176,6 +180,19 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
       );
     }
 
+    // Tax line item
+    if (taxAmountCents > 0) {
+      await stripe.invoiceItems.create(
+        {
+          customer: customer.id,
+          amount: taxAmountCents,
+          currency: "usd",
+          description: `Sales Tax (${taxRateNum}%)`,
+        },
+        { stripeAccount: CONNECTED_ACCOUNT }
+      );
+    }
+
     // Merchant fee line item
     if (merchantFeeCents > 0) {
       await stripe.invoiceItems.create(
@@ -221,6 +238,8 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
         extra_fee_label: extra_fee_label || "",
         discount: discountCents,
         discount_label: discount_label || "",
+        tax_rate: taxRateNum,
+        tax_amount: taxAmountCents,
         merchant_fee: merchantFeeCents,
         pass_merchant_fee: !!pass_merchant_fee,
         application_fee: applicationFeeCents,

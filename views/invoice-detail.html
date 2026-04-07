@@ -150,12 +150,19 @@
     </div>
 
     <div class="invoice-footer">
+      <div class="footer-terms" id="merchantFeeNote" style="display:none;margin-bottom:16px">
+        <p style="font-size:11px;color:#999;font-style:italic">
+          * A processing fee has been applied to cover third-party payment processing costs, as permitted under Florida law (Fla. Stat. 501.0117).
+        </p>
+      </div>
       <div class="footer-terms">
         <h4>Terms & Conditions</h4>
         <p>
-          Payment is due by the date specified above. Late payments may incur additional fees.
-          All sessions are non-refundable once completed. Cancellations must be made at least 24 hours
-          in advance. By paying this invoice, you agree to GeniusTestBoost's terms of service.
+          Payment is due by the date specified above. A late fee of 1.5% per month (18% per annum) may be assessed on overdue balances, as permitted under Florida Statute 687.02.
+          All tutoring sessions are non-refundable once completed. Cancellations must be made at least 24 hours in advance; failure to cancel may result in a charge for the scheduled session.
+          Rescheduling is subject to tutor availability. Materials fees, if applicable, are non-refundable.
+          This invoice constitutes a binding agreement for educational services rendered. By remitting payment, the client acknowledges receipt of services and agrees to these terms.
+          Disputes must be raised within 30 days of the invoice date. This agreement is governed by the laws of the State of Florida.
         </p>
       </div>
       <div class="footer-contact">
@@ -242,6 +249,16 @@
         tbody.appendChild(tr3);
       }
 
+      // Tax
+      if (inv.tax_amount > 0) {
+        const trTax = document.createElement('tr');
+        addCell(trTax, 'Sales Tax (' + parseFloat(inv.tax_rate) + '%)');
+        addCell(trTax, '');
+        addCell(trTax, '');
+        addCell(trTax, '$' + (inv.tax_amount / 100).toFixed(2));
+        tbody.appendChild(trTax);
+      }
+
       // Processing fee
       if (inv.merchant_fee > 0) {
         const tr4 = document.createElement('tr');
@@ -259,8 +276,14 @@
       addTotalLine(box, 'Subtotal', '$' + (inv.subtotal / 100).toFixed(2));
       if (inv.extra_fee > 0) addTotalLine(box, inv.extra_fee_label || 'Extra Fee', '$' + (inv.extra_fee / 100).toFixed(2));
       if (inv.discount > 0) addTotalLine(box, inv.discount_label || 'Discount', '-$' + (inv.discount / 100).toFixed(2));
-      if (inv.merchant_fee > 0) addTotalLine(box, 'Processing Fee', '$' + (inv.merchant_fee / 100).toFixed(2));
+      if (inv.tax_amount > 0) addTotalLine(box, 'Sales Tax (' + parseFloat(inv.tax_rate) + '%)', '$' + (inv.tax_amount / 100).toFixed(2));
+      if (inv.merchant_fee > 0) addTotalLine(box, 'Processing Fee *', '$' + (inv.merchant_fee / 100).toFixed(2));
       addTotalLine(box, 'Total', '$' + (inv.total / 100).toFixed(2), true);
+
+      // Show merchant fee note if applicable
+      if (inv.merchant_fee > 0) {
+        document.getElementById('merchantFeeNote').style.display = '';
+      }
     }
 
     function addCell(tr, text) {

@@ -81,6 +81,10 @@
 
           <div class="form-row">
             <div class="form-group">
+              <label>Sales Tax (%)</label>
+              <input type="number" id="taxRate" class="input" step="0.01" min="0" max="15" placeholder="0 (e.g. 7 for 7%)">
+            </div>
+            <div class="form-group">
               <label>Due Date</label>
               <input type="date" id="dueDate" class="input">
             </div>
@@ -95,6 +99,7 @@
             <div class="preview-line"><span>Subtotal</span><span id="prevSubtotal">$0.00</span></div>
             <div class="preview-line" id="prevExtraRow" style="display:none"><span id="prevExtraLabel">Extra Fee</span><span id="prevExtra">$0.00</span></div>
             <div class="preview-line discount" id="prevDiscountRow" style="display:none"><span id="prevDiscountLabel">Discount</span><span id="prevDiscount">-$0.00</span></div>
+            <div class="preview-line" id="prevTaxRow" style="display:none"><span id="prevTaxLabel">Sales Tax</span><span id="prevTax">$0.00</span></div>
             <div class="preview-line" id="prevFeeRow" style="display:none"><span>Processing Fee</span><span id="prevFee">$0.00</span></div>
             <div class="preview-line total"><span>Total</span><span id="prevTotal">$0.00</span></div>
           </div>
@@ -145,7 +150,7 @@
     }
 
     function setupLivePreview() {
-      const fields = ['hours', 'ratePerHour', 'extraFee', 'discount', 'passFee'];
+      const fields = ['hours', 'ratePerHour', 'extraFee', 'discount', 'passFee', 'taxRate'];
       fields.forEach(id => {
         const el = document.getElementById(id);
         el.addEventListener('input', updatePreview);
@@ -162,8 +167,12 @@
       const disc = parseFloat(document.getElementById('discount').value) || 0;
       const passFee = document.getElementById('passFee').checked;
 
+      const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+
       const subtotal = hours * rate;
-      const preTotal = subtotal + extra - disc;
+      const preDiscount = subtotal + extra - disc;
+      const taxAmount = preDiscount * (taxRate / 100);
+      const preTotal = preDiscount + taxAmount;
 
       let fee = 0;
       if (passFee && preTotal > 0) {
@@ -189,6 +198,15 @@
         document.getElementById('prevDiscountLabel').textContent = document.getElementById('discountLabel').value || 'Discount';
       } else {
         discRow.style.display = 'none';
+      }
+
+      const taxRow = document.getElementById('prevTaxRow');
+      if (taxAmount > 0) {
+        taxRow.style.display = '';
+        document.getElementById('prevTax').textContent = '$' + taxAmount.toFixed(2);
+        document.getElementById('prevTaxLabel').textContent = 'Sales Tax (' + taxRate + '%)';
+      } else {
+        taxRow.style.display = 'none';
       }
 
       const feeRow = document.getElementById('prevFeeRow');
@@ -320,6 +338,7 @@
             extra_fee_label: document.getElementById('extraFeeLabel').value,
             discount: document.getElementById('discount').value || '0',
             discount_label: document.getElementById('discountLabel').value,
+            tax_rate: document.getElementById('taxRate').value || '0',
             pass_merchant_fee: document.getElementById('passFee').checked,
             due_date: document.getElementById('dueDate').value || undefined,
           })
