@@ -197,6 +197,17 @@ a:hover { color: #E8D48B; }
 .status-pill.overdue { background: rgba(231,76,60,0.15); color: #e74c3c; }
 .status-pill.void { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3); text-decoration: line-through; }
 
+.invoice-preview-totals {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 20px 0;
+}
+.preview-line { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; color: rgba(255,255,255,0.5); }
+.preview-line.discount span:last-child { color: #27ae60; }
+.preview-line.total { border-top: 1px solid rgba(255,255,255,0.1); margin-top: 8px; padding-top: 10px; font-size: 18px; font-weight: 700; color: #C9A84C; }
+
 /* ========== DASHBOARD MAIN ========== */
 .dash-main { max-width: 1200px; margin: 0 auto; padding: 32px 28px; }
 

@@ -7,7 +7,9 @@ const router = express.Router();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const CONNECTED_ACCOUNT = process.env.STRIPE_CONNECTED_ACCOUNT_ID;
-const FEE_PERCENT = parseFloat(process.env.STRIPE_APPLICATION_FEE_PERCENT || "0.5");
+const FEE_PERCENT = parseFloat(process.env.STRIPE_APPLICATION_FEE_PERCENT || "0.2");
+const STRIPE_PROCESSING_RATE = 0.029; // 2.9%
+const STRIPE_PROCESSING_FIXED = 30; // 30 cents
 
 router.use(requireAuth);
 
@@ -56,7 +58,6 @@ router.get("/:id", async (req, res) => {
     if (error || !invoice)
       return res.status(404).json({ error: "Invoice not found" });
 
-    // Students can only see their own invoices
     if (
       req.user.role === "student" &&
       invoice.customer_email !== req.user.email
@@ -74,17 +75,50 @@ router.get("/:id", async (req, res) => {
 // POST /api/invoices — Create invoice (admin/owner)
 router.post("/", requireRole("owner", "admin"), async (req, res) => {
   try {
-    const { customer_email, customer_name, description, amount, due_date } =
-      req.body;
+    const {
+      customer_email,
+      customer_name,
+      description,
+      hours,
+      rate_per_hour,
+      extra_fee,
+      extra_fee_label,
+      discount,
+      discount_label,
+      pass_merchant_fee,
+      due_date,
+    } = req.body;
 
-    if (!customer_email || !amount) {
+    if (!customer_email || !hours || !rate_per_hour) {
       return res
         .status(400)
-        .json({ error: "Customer email and amount are required" });
+        .json({ error: "Customer email, hours, and rate are required" });
     }
 
-    const amountCents = Math.round(parseFloat(amount) * 100);
-    const applicationFee = Math.round(amountCents * (FEE_PERCENT / 100));
+    const hoursNum = parseFloat(hours);
+    const rateNum = parseFloat(rate_per_hour);
+    const subtotalCents = Math.round(hoursNum * rateNum * 100);
+    const extraFeeCents = Math.round(parseFloat(extra_fee || 0) * 100);
+    const discountCents = Math.round(parseFloat(discount || 0) * 100);
+
+    let preTotal = subtotalCents + extraFeeCents - discountCents;
+
+    // Calculate merchant fee if passing to customer
+    let merchantFeeCents = 0;
+    if (pass_merchant_fee) {
+      // Stripe charges 2.9% + 30c — calculate what to add so after Stripe takes its cut, the net is correct
+      merchantFeeCents = Math.round(
+        (preTotal * STRIPE_PROCESSING_RATE + STRIPE_PROCESSING_FIXED) /
+          (1 - STRIPE_PROCESSING_RATE)
+      );
+      // Simplified: just add the fee directly
+      merchantFeeCents = Math.round(
+        preTotal * STRIPE_PROCESSING_RATE + STRIPE_PROCESSING_FIXED
+      );
+    }
+
+    const totalCents = preTotal + merchantFeeCents;
+    const applicationFeeCents = Math.round(totalCents * (FEE_PERCENT / 100));
 
     // 1. Find or create customer on connected account
     const existingCustomers = await stripe.customers.list(
@@ -102,21 +136,63 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
       );
     }
 
-    // 2. Create invoice item on connected account
+    // 2. Create invoice items on connected account
+    // Main tutoring line item
     await stripe.invoiceItems.create(
       {
         customer: customer.id,
-        amount: amountCents,
+        amount: subtotalCents,
         currency: "usd",
-        description: description || "GeniusTestBoost Services",
+        description:
+          (description || "Tutoring Session") +
+          ` (${hoursNum} hr${hoursNum !== 1 ? "s" : ""} x $${rateNum.toFixed(2)}/hr)`,
       },
       { stripeAccount: CONNECTED_ACCOUNT }
     );
 
+    // Extra fee line item
+    if (extraFeeCents > 0) {
+      await stripe.invoiceItems.create(
+        {
+          customer: customer.id,
+          amount: extraFeeCents,
+          currency: "usd",
+          description: extra_fee_label || "Additional Fee",
+        },
+        { stripeAccount: CONNECTED_ACCOUNT }
+      );
+    }
+
+    // Discount line item (negative amount)
+    if (discountCents > 0) {
+      await stripe.invoiceItems.create(
+        {
+          customer: customer.id,
+          amount: -discountCents,
+          currency: "usd",
+          description: discount_label || "Discount",
+        },
+        { stripeAccount: CONNECTED_ACCOUNT }
+      );
+    }
+
+    // Merchant fee line item
+    if (merchantFeeCents > 0) {
+      await stripe.invoiceItems.create(
+        {
+          customer: customer.id,
+          amount: merchantFeeCents,
+          currency: "usd",
+          description: "Processing Fee",
+        },
+        { stripeAccount: CONNECTED_ACCOUNT }
+      );
+    }
+
     // 3. Create invoice on connected account
     const dueTimestamp = due_date
       ? Math.floor(new Date(due_date).getTime() / 1000)
-      : Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60; // 30 days
+      : Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
 
     const stripeInvoice = await stripe.invoices.create(
       {
@@ -124,7 +200,7 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
         collection_method: "send_invoice",
         due_date: dueTimestamp,
         auto_advance: false,
-        application_fee_amount: applicationFee,
+        application_fee_amount: applicationFeeCents,
       },
       { stripeAccount: CONNECTED_ACCOUNT }
     );
@@ -137,9 +213,18 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
         stripe_hosted_url: stripeInvoice.hosted_invoice_url,
         customer_email,
         customer_name: customer_name || "",
-        description: description || "GeniusTestBoost Services",
-        amount: amountCents,
-        application_fee: applicationFee,
+        description: description || "Tutoring Session",
+        hours: hoursNum,
+        rate_per_hour: rateNum,
+        subtotal: subtotalCents,
+        extra_fee: extraFeeCents,
+        extra_fee_label: extra_fee_label || "",
+        discount: discountCents,
+        discount_label: discount_label || "",
+        merchant_fee: merchantFeeCents,
+        pass_merchant_fee: !!pass_merchant_fee,
+        application_fee: applicationFeeCents,
+        total: totalCents,
         status: "draft",
         due_date: due_date || new Date(dueTimestamp * 1000).toISOString(),
         created_by: req.user.id,
@@ -175,21 +260,18 @@ router.post("/:id/send", requireRole("owner", "admin"), async (req, res) => {
       return res.status(400).json({ error: "Only draft invoices can be sent" });
     }
 
-    // Finalize the invoice on Stripe
     const finalized = await stripe.invoices.finalizeInvoice(
       invoice.stripe_invoice_id,
       {},
       { stripeAccount: CONNECTED_ACCOUNT }
     );
 
-    // Send the invoice
-    const sent = await stripe.invoices.sendInvoice(
+    await stripe.invoices.sendInvoice(
       invoice.stripe_invoice_id,
       {},
       { stripeAccount: CONNECTED_ACCOUNT }
     );
 
-    // Update our record
     const { error } = await supabase
       .from("invoices")
       .update({
@@ -229,7 +311,6 @@ router.post("/:id/void", requireRole("owner", "admin"), async (req, res) => {
         .json({ error: "Cannot void a paid or already voided invoice" });
     }
 
-    // Void on Stripe (must be finalized first)
     if (invoice.status === "sent") {
       await stripe.invoices.voidInvoice(
         invoice.stripe_invoice_id,

@@ -82,6 +82,10 @@ app.get("/assignment/:id", requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "views", "assignment-detail.html"));
 });
 
+app.get("/invoice/:id", requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "invoice-detail.html"));
+});
+
 app.get("/invoices", requireAuth, (req, res) => {
   if (req.user.role !== "owner" && req.user.role !== "admin") {
     return res.redirect("/dashboard");

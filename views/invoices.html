@@ -32,28 +32,73 @@
         <form id="invoiceForm">
           <div class="form-row">
             <div class="form-group">
-              <label>Customer Email *</label>
+              <label>Student Email *</label>
               <input type="email" id="custEmail" class="input" placeholder="student@example.com" required>
             </div>
             <div class="form-group">
-              <label>Customer Name</label>
+              <label>Student Name</label>
               <input type="text" id="custName" class="input" placeholder="John Doe">
             </div>
           </div>
+
+          <div class="form-group">
+            <label>Session Description</label>
+            <input type="text" id="description" class="input" placeholder="SAT Math Prep">
+          </div>
+
           <div class="form-row">
             <div class="form-group">
-              <label>Amount (USD) *</label>
-              <input type="number" id="amount" class="input" step="0.01" min="1" placeholder="150.00" required>
+              <label>Number of Hours *</label>
+              <input type="number" id="hours" class="input" step="0.5" min="0.5" placeholder="5" required>
             </div>
+            <div class="form-group">
+              <label>Rate per Hour ($) *</label>
+              <input type="number" id="ratePerHour" class="input" step="0.01" min="1" placeholder="75.00" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Extra Fee ($)</label>
+              <input type="number" id="extraFee" class="input" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Fee Label</label>
+              <input type="text" id="extraFeeLabel" class="input" placeholder="Materials / Registration">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Discount ($)</label>
+              <input type="number" id="discount" class="input" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Discount Label</label>
+              <input type="text" id="discountLabel" class="input" placeholder="Multi-session discount">
+            </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group">
               <label>Due Date</label>
               <input type="date" id="dueDate" class="input">
             </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:24px">
+              <input type="checkbox" id="passFee" style="width:18px;height:18px">
+              <label for="passFee" style="margin:0;cursor:pointer">Pass processing fee to student</label>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Description</label>
-            <input type="text" id="description" class="input" placeholder="Test Prep Tutoring - April 2026">
+
+          <!-- Live Total Preview -->
+          <div class="invoice-preview-totals" id="totalsPreview">
+            <div class="preview-line"><span>Subtotal</span><span id="prevSubtotal">$0.00</span></div>
+            <div class="preview-line" id="prevExtraRow" style="display:none"><span id="prevExtraLabel">Extra Fee</span><span id="prevExtra">$0.00</span></div>
+            <div class="preview-line discount" id="prevDiscountRow" style="display:none"><span id="prevDiscountLabel">Discount</span><span id="prevDiscount">-$0.00</span></div>
+            <div class="preview-line" id="prevFeeRow" style="display:none"><span>Processing Fee</span><span id="prevFee">$0.00</span></div>
+            <div class="preview-line total"><span>Total</span><span id="prevTotal">$0.00</span></div>
           </div>
+
           <div id="invoiceError" class="error-message"></div>
           <button type="submit" class="btn-primary" id="createBtn">Create Invoice</button>
         </form>
@@ -67,11 +112,12 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Customer</th>
+              <th>#</th>
+              <th>Student</th>
               <th>Description</th>
               <th>Amount</th>
               <th>Status</th>
-              <th>Due Date</th>
+              <th>Due</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -88,7 +134,72 @@
       const res = await fetch('/api/user', { credentials: 'include' });
       if (!res.ok) { window.location.href = '/login'; return; }
       currentUser = await res.json();
+
+      // Set default due date to 30 days from now
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      document.getElementById('dueDate').value = d.toISOString().split('T')[0];
+
+      setupLivePreview();
       await loadInvoices();
+    }
+
+    function setupLivePreview() {
+      const fields = ['hours', 'ratePerHour', 'extraFee', 'discount', 'passFee'];
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', updatePreview);
+        el.addEventListener('change', updatePreview);
+      });
+      document.getElementById('extraFeeLabel').addEventListener('input', updatePreview);
+      document.getElementById('discountLabel').addEventListener('input', updatePreview);
+    }
+
+    function updatePreview() {
+      const hours = parseFloat(document.getElementById('hours').value) || 0;
+      const rate = parseFloat(document.getElementById('ratePerHour').value) || 0;
+      const extra = parseFloat(document.getElementById('extraFee').value) || 0;
+      const disc = parseFloat(document.getElementById('discount').value) || 0;
+      const passFee = document.getElementById('passFee').checked;
+
+      const subtotal = hours * rate;
+      const preTotal = subtotal + extra - disc;
+
+      let fee = 0;
+      if (passFee && preTotal > 0) {
+        fee = preTotal * 0.029 + 0.30;
+      }
+      const total = preTotal + fee;
+
+      document.getElementById('prevSubtotal').textContent = '$' + subtotal.toFixed(2);
+
+      const extraRow = document.getElementById('prevExtraRow');
+      if (extra > 0) {
+        extraRow.style.display = '';
+        document.getElementById('prevExtra').textContent = '$' + extra.toFixed(2);
+        document.getElementById('prevExtraLabel').textContent = document.getElementById('extraFeeLabel').value || 'Extra Fee';
+      } else {
+        extraRow.style.display = 'none';
+      }
+
+      const discRow = document.getElementById('prevDiscountRow');
+      if (disc > 0) {
+        discRow.style.display = '';
+        document.getElementById('prevDiscount').textContent = '-$' + disc.toFixed(2);
+        document.getElementById('prevDiscountLabel').textContent = document.getElementById('discountLabel').value || 'Discount';
+      } else {
+        discRow.style.display = 'none';
+      }
+
+      const feeRow = document.getElementById('prevFeeRow');
+      if (fee > 0) {
+        feeRow.style.display = '';
+        document.getElementById('prevFee').textContent = '$' + fee.toFixed(2);
+      } else {
+        feeRow.style.display = 'none';
+      }
+
+      document.getElementById('prevTotal').textContent = '$' + total.toFixed(2);
     }
 
     async function loadInvoices() {
@@ -101,7 +212,7 @@
       if (!invoices.length) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 6;
+        td.colSpan = 7;
         td.className = 'empty-msg';
         td.textContent = 'No invoices yet. Create your first one above.';
         tr.appendChild(td);
@@ -111,22 +222,31 @@
 
       invoices.forEach(inv => {
         const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', (e) => {
+          if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
+          window.location.href = '/invoice/' + inv.id;
+        });
+
+        const tdNum = document.createElement('td');
+        tdNum.textContent = '#' + String(inv.invoice_number).padStart(4, '0');
+        tdNum.style.fontWeight = '600';
+        tdNum.style.opacity = '0.6';
 
         const tdCustomer = document.createElement('td');
         const nameEl = document.createElement('strong');
-        nameEl.textContent = inv.customer_name || '';
-        const emailEl = document.createElement('small');
-        emailEl.textContent = inv.customer_email;
-        emailEl.style.display = 'block';
-        emailEl.style.opacity = '0.6';
+        nameEl.textContent = inv.customer_name || inv.customer_email;
         tdCustomer.appendChild(nameEl);
-        tdCustomer.appendChild(emailEl);
 
         const tdDesc = document.createElement('td');
         tdDesc.textContent = inv.description || '';
+        tdDesc.style.maxWidth = '200px';
+        tdDesc.style.overflow = 'hidden';
+        tdDesc.style.textOverflow = 'ellipsis';
+        tdDesc.style.whiteSpace = 'nowrap';
 
         const tdAmount = document.createElement('td');
-        tdAmount.textContent = '$' + (inv.amount / 100).toFixed(2);
+        tdAmount.textContent = '$' + (inv.total / 100).toFixed(2);
         tdAmount.style.fontWeight = '600';
 
         const tdStatus = document.createElement('td');
@@ -145,40 +265,28 @@
           const sendBtn = document.createElement('button');
           sendBtn.className = 'btn-primary-sm';
           sendBtn.textContent = 'Send';
-          sendBtn.addEventListener('click', () => sendInvoice(inv.id));
+          sendBtn.addEventListener('click', (e) => { e.stopPropagation(); sendInvoice(inv.id); });
           tdActions.appendChild(sendBtn);
 
           const voidBtn = document.createElement('button');
           voidBtn.className = 'btn-danger-sm';
           voidBtn.textContent = 'Void';
-          voidBtn.addEventListener('click', () => voidInvoice(inv.id));
+          voidBtn.addEventListener('click', (e) => { e.stopPropagation(); voidInvoice(inv.id); });
           tdActions.appendChild(voidBtn);
         }
 
         if (inv.status === 'sent' && inv.stripe_hosted_url) {
           const linkBtn = document.createElement('a');
           linkBtn.className = 'btn-ghost-sm';
-          linkBtn.textContent = 'View';
+          linkBtn.textContent = 'Pay Link';
           linkBtn.href = inv.stripe_hosted_url;
           linkBtn.target = '_blank';
           linkBtn.rel = 'noopener';
+          linkBtn.addEventListener('click', (e) => e.stopPropagation());
           tdActions.appendChild(linkBtn);
-
-          const voidBtn = document.createElement('button');
-          voidBtn.className = 'btn-danger-sm';
-          voidBtn.textContent = 'Void';
-          voidBtn.addEventListener('click', () => voidInvoice(inv.id));
-          tdActions.appendChild(voidBtn);
         }
 
-        if (inv.status === 'paid') {
-          const paidSpan = document.createElement('span');
-          paidSpan.style.color = '#27ae60';
-          paidSpan.style.fontWeight = '600';
-          paidSpan.textContent = 'Paid';
-          tdActions.appendChild(paidSpan);
-        }
-
+        tr.appendChild(tdNum);
         tr.appendChild(tdCustomer);
         tr.appendChild(tdDesc);
         tr.appendChild(tdAmount);
@@ -205,15 +313,26 @@
           body: JSON.stringify({
             customer_email: document.getElementById('custEmail').value,
             customer_name: document.getElementById('custName').value,
-            amount: document.getElementById('amount').value,
+            description: document.getElementById('description').value,
+            hours: document.getElementById('hours').value,
+            rate_per_hour: document.getElementById('ratePerHour').value,
+            extra_fee: document.getElementById('extraFee').value || '0',
+            extra_fee_label: document.getElementById('extraFeeLabel').value,
+            discount: document.getElementById('discount').value || '0',
+            discount_label: document.getElementById('discountLabel').value,
+            pass_merchant_fee: document.getElementById('passFee').checked,
             due_date: document.getElementById('dueDate').value || undefined,
-            description: document.getElementById('description').value
           })
         });
 
         const result = await res.json();
         if (res.ok && result.success) {
           document.getElementById('invoiceForm').reset();
+          // Reset due date
+          const d = new Date();
+          d.setDate(d.getDate() + 30);
+          document.getElementById('dueDate').value = d.toISOString().split('T')[0];
+          updatePreview();
           await loadInvoices();
         } else {
           errEl.textContent = result.error || result.details || 'Failed to create invoice';
@@ -229,31 +348,18 @@
     });
 
     async function sendInvoice(id) {
-      if (!confirm('Send this invoice to the customer?')) return;
-      const res = await fetch('/api/invoices/' + id + '/send', {
-        method: 'POST',
-        credentials: 'include'
-      });
+      if (!confirm('Send this invoice to the student?')) return;
+      const res = await fetch('/api/invoices/' + id + '/send', { method: 'POST', credentials: 'include' });
       const result = await res.json();
-      if (res.ok) {
-        await loadInvoices();
-      } else {
-        alert(result.error || 'Failed to send invoice');
-      }
+      if (res.ok) { await loadInvoices(); }
+      else { alert(result.error || 'Failed to send'); }
     }
 
     async function voidInvoice(id) {
       if (!confirm('Void this invoice? This cannot be undone.')) return;
-      const res = await fetch('/api/invoices/' + id + '/void', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (res.ok) {
-        await loadInvoices();
-      } else {
-        const result = await res.json();
-        alert(result.error || 'Failed to void invoice');
-      }
+      const res = await fetch('/api/invoices/' + id + '/void', { method: 'POST', credentials: 'include' });
+      if (res.ok) { await loadInvoices(); }
+      else { const r = await res.json(); alert(r.error || 'Failed to void'); }
     }
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice - GeniusTestBoost</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0c0c18; color: #e0e0e8; min-height: 100vh; }
+
+    .invoice-actions { max-width: 800px; margin: 24px auto 0; padding: 0 24px; display: flex; gap: 12px; }
+    .invoice-actions a, .invoice-actions button {
+      padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+      text-decoration: none; border: none; font-family: inherit;
+    }
+    .btn-back { background: rgba(255,255,255,0.06); color: #e0e0e8; }
+    .btn-back:hover { background: rgba(255,255,255,0.1); }
+    .btn-print { background: #C9A84C; color: #000; }
+    .btn-print:hover { background: #E8D48B; }
+
+    .invoice-page {
+      max-width: 800px; margin: 24px auto; background: #fff; color: #1a1a2e;
+      border-radius: 16px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    }
+
+    .invoice-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 48px 48px 32px; border-bottom: 2px solid #f0f0f0;
+    }
+    .invoice-logo { display: flex; align-items: center; gap: 12px; }
+    .invoice-logo-icon {
+      width: 48px; height: 48px; background: #1a1a2e; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: #C9A84C; font-weight: 800; font-size: 20px;
+    }
+    .invoice-logo-text { font-size: 22px; font-weight: 800; color: #1a1a2e; }
+    .invoice-logo-text span { color: #C9A84C; }
+
+    .invoice-title-block { text-align: right; }
+    .invoice-title { font-size: 32px; font-weight: 800; color: #1a1a2e; letter-spacing: -0.5px; }
+    .invoice-status {
+      display: inline-block; padding: 4px 14px; border-radius: 50px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; margin-top: 8px;
+    }
+    .invoice-status.draft { background: #f0f0f0; color: #888; }
+    .invoice-status.sent { background: #e8f4fd; color: #2980b9; }
+    .invoice-status.paid { background: #e8f8f0; color: #27ae60; }
+    .invoice-status.overdue { background: #fde8e8; color: #e74c3c; }
+    .invoice-status.void { background: #f0f0f0; color: #aaa; text-decoration: line-through; }
+
+    .invoice-meta {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+      padding: 32px 48px;
+    }
+    .meta-block h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 8px; }
+    .meta-block p { font-size: 14px; line-height: 1.6; color: #333; }
+    .meta-block .meta-value { font-weight: 600; color: #1a1a2e; }
+
+    .invoice-table { padding: 0 48px 32px; }
+    .invoice-table table { width: 100%; border-collapse: collapse; }
+    .invoice-table th {
+      text-align: left; padding: 12px 16px; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1px; color: #999; border-bottom: 2px solid #f0f0f0;
+    }
+    .invoice-table th:last-child { text-align: right; }
+    .invoice-table td { padding: 16px; font-size: 14px; color: #333; border-bottom: 1px solid #f5f5f5; }
+    .invoice-table td:last-child { text-align: right; font-weight: 600; }
+    .invoice-table tr.discount td { color: #27ae60; }
+
+    .invoice-totals { padding: 0 48px 40px; }
+    .totals-box {
+      margin-left: auto; width: 280px; background: #fafafa; border-radius: 12px; padding: 20px 24px;
+    }
+    .totals-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: #666; }
+    .totals-line.total { border-top: 2px solid #1a1a2e; margin-top: 8px; padding-top: 12px; font-size: 18px; font-weight: 800; color: #1a1a2e; }
+
+    .invoice-footer {
+      background: #fafafa; padding: 32px 48px; border-top: 1px solid #f0f0f0;
+    }
+    .footer-terms h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 8px; }
+    .footer-terms p { font-size: 12px; line-height: 1.8; color: #888; }
+    .footer-contact { margin-top: 20px; font-size: 12px; color: #aaa; text-align: center; }
+
+    .invoice-number-bar {
+      background: #1a1a2e; color: #C9A84C; text-align: center;
+      padding: 10px; font-size: 12px; font-weight: 700; letter-spacing: 1px;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .invoice-actions { display: none; }
+      .invoice-page { box-shadow: none; margin: 0; border-radius: 0; }
+    }
+
+    @media (max-width: 600px) {
+      .invoice-header { flex-direction: column; gap: 16px; padding: 32px 24px 24px; }
+      .invoice-title-block { text-align: left; }
+      .invoice-meta { grid-template-columns: 1fr; gap: 20px; padding: 24px; }
+      .invoice-table { padding: 0 24px 24px; }
+      .invoice-totals { padding: 0 24px 32px; }
+      .totals-box { width: 100%; }
+      .invoice-footer { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice-actions" id="actionBar">
+    <a href="/invoices" class="btn-back">Back to Invoices</a>
+    <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <div class="invoice-page" id="invoicePage">
+    <div class="invoice-header">
+      <div class="invoice-logo">
+        <div class="invoice-logo-icon">G</div>
+        <div class="invoice-logo-text">Genius<span>TestBoost</span></div>
+      </div>
+      <div class="invoice-title-block">
+        <div class="invoice-title">INVOICE</div>
+        <span class="invoice-status" id="statusBadge">Draft</span>
+      </div>
+    </div>
+
+    <div class="invoice-meta">
+      <div class="meta-block">
+        <h4>Bill To</h4>
+        <p><span class="meta-value" id="billName">-</span></p>
+        <p id="billEmail">-</p>
+      </div>
+      <div class="meta-block" style="text-align:right">
+        <h4>Invoice Details</h4>
+        <p>Date: <span class="meta-value" id="invoiceDate">-</span></p>
+        <p>Due: <span class="meta-value" id="invoiceDue">-</span></p>
+      </div>
+    </div>
+
+    <div class="invoice-table">
+      <table>
+        <thead>
+          <tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+        </thead>
+        <tbody id="lineItems"></tbody>
+      </table>
+    </div>
+
+    <div class="invoice-totals">
+      <div class="totals-box" id="totalsBox"></div>
+    </div>
+
+    <div class="invoice-footer">
+      <div class="footer-terms">
+        <h4>Terms & Conditions</h4>
+        <p>
+          Payment is due by the date specified above. Late payments may incur additional fees.
+          All sessions are non-refundable once completed. Cancellations must be made at least 24 hours
+          in advance. By paying this invoice, you agree to GeniusTestBoost's terms of service.
+        </p>
+      </div>
+      <div class="footer-contact">
+        GeniusTestBoost | classroom@geniustestboost.com | 240.346.8306
+      </div>
+    </div>
+
+    <div class="invoice-number-bar" id="invoiceNumberBar">
+      INVOICE #0000
+    </div>
+  </div>
+
+  <script>
+    const invoiceId = window.location.pathname.split('/invoice/')[1];
+
+    async function init() {
+      const userRes = await fetch('/api/user', { credentials: 'include' });
+      if (!userRes.ok) { window.location.href = '/login'; return; }
+      const user = await userRes.json();
+
+      // Students see back to dashboard, not invoices
+      if (user.role === 'student') {
+        const backLink = document.querySelector('.btn-back');
+        backLink.href = '/dashboard';
+        backLink.textContent = 'Back to Dashboard';
+      }
+
+      const res = await fetch('/api/invoices/' + invoiceId, { credentials: 'include' });
+      if (!res.ok) { alert('Invoice not found'); window.location.href = '/dashboard'; return; }
+      const inv = await res.json();
+
+      renderInvoice(inv);
+    }
+
+    function renderInvoice(inv) {
+      document.title = 'Invoice #' + String(inv.invoice_number).padStart(4, '0') + ' - GeniusTestBoost';
+
+      // Status
+      const badge = document.getElementById('statusBadge');
+      badge.textContent = inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
+      badge.className = 'invoice-status ' + inv.status;
+
+      // Bill to
+      document.getElementById('billName').textContent = inv.customer_name || inv.customer_email;
+      document.getElementById('billEmail').textContent = inv.customer_email;
+
+      // Dates
+      document.getElementById('invoiceDate').textContent = new Date(inv.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('invoiceDue').textContent = inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+
+      // Invoice number
+      document.getElementById('invoiceNumberBar').textContent = 'INVOICE #' + String(inv.invoice_number).padStart(4, '0');
+
+      // Line items
+      const tbody = document.getElementById('lineItems');
+      tbody.textContent = '';
+
+      // Main tutoring line
+      const tr1 = document.createElement('tr');
+      addCell(tr1, inv.description || 'Tutoring Session');
+      addCell(tr1, inv.hours ? parseFloat(inv.hours) + ' hr' + (parseFloat(inv.hours) !== 1 ? 's' : '') : '1');
+      addCell(tr1, inv.rate_per_hour ? '$' + parseFloat(inv.rate_per_hour).toFixed(2) + '/hr' : '-');
+      addCell(tr1, '$' + (inv.subtotal / 100).toFixed(2));
+      tbody.appendChild(tr1);
+
+      // Extra fee
+      if (inv.extra_fee > 0) {
+        const tr2 = document.createElement('tr');
+        addCell(tr2, inv.extra_fee_label || 'Additional Fee');
+        addCell(tr2, '');
+        addCell(tr2, '');
+        addCell(tr2, '$' + (inv.extra_fee / 100).toFixed(2));
+        tbody.appendChild(tr2);
+      }
+
+      // Discount
+      if (inv.discount > 0) {
+        const tr3 = document.createElement('tr');
+        tr3.className = 'discount';
+        addCell(tr3, inv.discount_label || 'Discount');
+        addCell(tr3, '');
+        addCell(tr3, '');
+        addCell(tr3, '-$' + (inv.discount / 100).toFixed(2));
+        tbody.appendChild(tr3);
+      }
+
+      // Processing fee
+      if (inv.merchant_fee > 0) {
+        const tr4 = document.createElement('tr');
+        addCell(tr4, 'Processing Fee');
+        addCell(tr4, '');
+        addCell(tr4, '');
+        addCell(tr4, '$' + (inv.merchant_fee / 100).toFixed(2));
+        tbody.appendChild(tr4);
+      }
+
+      // Totals box
+      const box = document.getElementById('totalsBox');
+      box.textContent = '';
+
+      addTotalLine(box, 'Subtotal', '$' + (inv.subtotal / 100).toFixed(2));
+      if (inv.extra_fee > 0) addTotalLine(box, inv.extra_fee_label || 'Extra Fee', '$' + (inv.extra_fee / 100).toFixed(2));
+      if (inv.discount > 0) addTotalLine(box, inv.discount_label || 'Discount', '-$' + (inv.discount / 100).toFixed(2));
+      if (inv.merchant_fee > 0) addTotalLine(box, 'Processing Fee', '$' + (inv.merchant_fee / 100).toFixed(2));
+      addTotalLine(box, 'Total', '$' + (inv.total / 100).toFixed(2), true);
+    }
+
+    function addCell(tr, text) {
+      const td = document.createElement('td');
+      td.textContent = text;
+      tr.appendChild(td);
+    }
+
+    function addTotalLine(box, label, value, isTotal) {
+      const div = document.createElement('div');
+      div.className = 'totals-line' + (isTotal ? ' total' : '');
+      const spanLabel = document.createElement('span');
+      spanLabel.textContent = label;
+      const spanValue = document.createElement('span');
+      spanValue.textContent = value;
+      div.appendChild(spanLabel);
+      div.appendChild(spanValue);
+      box.appendChild(div);
+    }
+
+    init();
+  </script>
+</body>
+</html>
