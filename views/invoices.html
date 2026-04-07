@@ -147,22 +147,26 @@
           <!-- Step 3: Session Details -->
           <div class="inline-section" id="step3" style="display:none">
             <h3>Session Details</h3>
-            <div class="form-group">
-              <label>Class Name</label>
-              <input type="text" id="className" class="input" placeholder="SAT Math Prep">
-            </div>
-            <div class="form-group">
-              <label>Description</label>
-              <input type="text" id="description" class="input" placeholder="Weekly practice sessions">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Number of Hours</label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+              <div class="form-group" style="flex:2;min-width:140px">
+                <label>Class Name</label>
+                <input type="text" id="className" class="input" placeholder="SAT Math Prep">
+              </div>
+              <div class="form-group" style="flex:2;min-width:140px">
+                <label>Description</label>
+                <input type="text" id="description" class="input" placeholder="Weekly sessions">
+              </div>
+              <div class="form-group" style="flex:1;min-width:80px">
+                <label>Hours</label>
                 <input type="number" id="hours" class="input" step="0.5" min="0.5" placeholder="5">
               </div>
-              <div class="form-group">
-                <label>Rate per Hour ($)</label>
-                <input type="number" id="ratePerHour" class="input" step="0.01" min="1" placeholder="75.00">
+              <div class="form-group" style="flex:1;min-width:90px">
+                <label>Rate ($/hr)</label>
+                <input type="number" id="ratePerHour" class="input" step="0.01" min="1" placeholder="75">
+              </div>
+              <div class="form-group" style="flex:1;min-width:90px">
+                <label>Total</label>
+                <div class="input" id="lineTotal" style="background:rgba(201,168,76,0.08);color:#C9A84C;font-weight:700;border-color:rgba(201,168,76,0.2)">$0.00</div>
               </div>
             </div>
           </div>
@@ -428,6 +432,7 @@
       }
       const total = preTotal + fee;
 
+      document.getElementById('lineTotal').textContent = '$' + subtotal.toFixed(2);
       document.getElementById('prevSubtotal').textContent = '$' + subtotal.toFixed(2);
 
       const extraRow = document.getElementById('prevExtraRow');
@@ -679,7 +684,8 @@
           resetForm();
           await loadInvoices();
         } else {
-          errEl.textContent = result.error || result.details || 'Failed to create invoice';
+          const msg = [result.error, result.details, result.message].filter(Boolean).join(' — ');
+          errEl.textContent = msg || 'Failed to create invoice';
           errEl.classList.add('visible');
         }
       } catch (err) {
