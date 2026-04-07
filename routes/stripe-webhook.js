@@ -1,6 +1,7 @@
 import express from "express";
 import Stripe from "stripe";
 import supabase from "../database.js";
+import { sendInvoicePaidToOwner } from "../lib/email.js";
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -30,14 +31,25 @@ router.post("/", express.raw({ type: "application/json" }), async (req, res) => 
     switch (event.type) {
       case "invoice.paid": {
         const stripeInvoice = event.data.object;
-        await supabase
+        const { data: paidInvoice } = await supabase
           .from("invoices")
           .update({
             status: "paid",
             paid_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq("stripe_invoice_id", stripeInvoice.id);
+          .eq("stripe_invoice_id", stripeInvoice.id)
+          .select()
+          .single();
+
+        if (paidInvoice) {
+          sendInvoicePaidToOwner({
+            studentName: paidInvoice.customer_name,
+            studentEmail: paidInvoice.customer_email,
+            amount: paidInvoice.total,
+            description: paidInvoice.class_name || paidInvoice.description,
+          }).catch(() => {});
+        }
         break;
       }
 

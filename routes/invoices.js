@@ -2,6 +2,11 @@ import express from "express";
 import Stripe from "stripe";
 import supabase from "../database.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
+import {
+  sendInvoiceCreatedToStudent,
+  sendInvoiceCreatedToOwner,
+  sendNewStudentToOwner,
+} from "../lib/email.js";
 
 const router = express.Router();
 
@@ -78,6 +83,9 @@ router.post(
         .single();
 
       if (error) throw error;
+      // Notify owner about new student (fire and forget)
+      sendNewStudentToOwner({ name, email, phone }).catch(() => {});
+
       res.json({ student, existed: false });
     } catch (err) {
       console.error("Create student error:", err);
@@ -338,6 +346,15 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
 
     if (error) throw error;
 
+    // Send email notifications (fire and forget)
+    const desc = (class_name || "") + (description ? ` — ${description}` : "") || "Tutoring Services";
+    sendInvoiceCreatedToOwner({
+      studentName: customer_name,
+      studentEmail: customer_email,
+      amount: totalCents,
+      description: desc,
+    }).catch(() => {});
+
     res.json({ success: true, invoice });
   } catch (err) {
     console.error("Create invoice error:", err);
@@ -386,6 +403,16 @@ router.post("/:id/send", requireRole("owner", "admin"), async (req, res) => {
       .eq("id", req.params.id);
 
     if (error) throw error;
+
+    // Email the student with payment link
+    sendInvoiceCreatedToStudent({
+      email: invoice.customer_email,
+      name: invoice.customer_name,
+      invoiceUrl: finalized.hosted_invoice_url,
+      amount: invoice.total,
+      description: invoice.class_name || invoice.description || "Tutoring Services",
+      dueDate: invoice.due_date,
+    }).catch(() => {});
 
     res.json({ success: true, hosted_url: finalized.hosted_invoice_url });
   } catch (err) {

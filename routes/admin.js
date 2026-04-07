@@ -2,6 +2,7 @@ import express from "express";
 import supabase from "../database.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { ROLES } from "../lib/auth.js";
+import { sendTeacherApprovedEmail } from "../lib/email.js";
 
 const router = express.Router();
 
@@ -204,6 +205,15 @@ router.post("/users/:id/approve", async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Notify the teacher they've been approved
+    if (data) {
+      sendTeacherApprovedEmail({
+        email: data.email,
+        name: data.name || data.firstName,
+      }).catch(() => {});
+    }
+
     res.json({ success: true, user: data });
   } catch (err) {
     console.error("Approve error:", err);
