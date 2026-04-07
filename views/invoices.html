@@ -490,15 +490,36 @@
           tdActions.appendChild(sendBtn);
         }
 
-        if (inv.status === 'sent' && inv.stripe_hosted_url) {
-          const linkBtn = document.createElement('a');
-          linkBtn.className = 'btn-ghost-sm';
-          linkBtn.textContent = 'Pay Link';
-          linkBtn.href = inv.stripe_hosted_url;
-          linkBtn.target = '_blank';
-          linkBtn.rel = 'noopener';
-          linkBtn.addEventListener('click', (e) => e.stopPropagation());
-          tdActions.appendChild(linkBtn);
+        // Preview button — always show for any status
+        const previewBtn = document.createElement('a');
+        previewBtn.className = 'btn-ghost-sm';
+        previewBtn.textContent = 'Preview';
+        previewBtn.href = '/invoice/' + inv.id;
+        previewBtn.addEventListener('click', (e) => e.stopPropagation());
+        tdActions.appendChild(previewBtn);
+
+        // Copy Link + Open Pay Link — show for sent/paid invoices with a hosted URL
+        if (inv.stripe_hosted_url && inv.status !== 'draft' && inv.status !== 'void') {
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'btn-ghost-sm';
+          copyBtn.textContent = 'Copy Link';
+          copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(inv.stripe_hosted_url).then(() => {
+              copyBtn.textContent = 'Copied!';
+              setTimeout(() => { copyBtn.textContent = 'Copy Link'; }, 2000);
+            });
+          });
+          tdActions.appendChild(copyBtn);
+
+          const openBtn = document.createElement('a');
+          openBtn.className = 'btn-ghost-sm';
+          openBtn.textContent = 'Pay Page';
+          openBtn.href = inv.stripe_hosted_url;
+          openBtn.target = '_blank';
+          openBtn.rel = 'noopener';
+          openBtn.addEventListener('click', (e) => e.stopPropagation());
+          tdActions.appendChild(openBtn);
         }
 
         tr.appendChild(tdNum);
