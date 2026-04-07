@@ -365,6 +365,175 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
   }
 });
 
+// PUT /api/invoices/:id — Update a draft invoice
+router.put("/:id", requireRole("owner", "admin"), async (req, res) => {
+  try {
+    // Verify it's still a draft
+    const { data: existing, error: fetchErr } = await supabase
+      .from("invoices")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+
+    if (fetchErr || !existing)
+      return res.status(404).json({ error: "Invoice not found" });
+
+    if (existing.status !== "draft") {
+      return res.status(400).json({ error: "Only draft invoices can be edited" });
+    }
+
+    const {
+      customer_email, customer_name, class_name, description,
+      hours, rate_per_hour, extra_fee, extra_fee_label,
+      discount_value, discount_type, discount_label,
+      tax_rate, pass_merchant_fee, due_date,
+    } = req.body;
+
+    const hoursNum = parseFloat(hours || existing.hours);
+    const rateNum = parseFloat(rate_per_hour || existing.rate_per_hour);
+    const subtotalCents = Math.round(hoursNum * rateNum * 100);
+    const extraFeeCents = Math.round(parseFloat(extra_fee || 0) * 100);
+
+    let discountCents = 0;
+    const discountVal = parseFloat(discount_value || 0);
+    if (discount_type === "percent" && discountVal > 0) {
+      discountCents = Math.round((subtotalCents + extraFeeCents) * (discountVal / 100));
+    } else if (discountVal > 0) {
+      discountCents = Math.round(discountVal * 100);
+    }
+
+    const taxRateNum = parseFloat(tax_rate || 0);
+    const preTax = subtotalCents + extraFeeCents - discountCents;
+    const taxAmountCents = Math.round(preTax * (taxRateNum / 100));
+    let preTotal = preTax + taxAmountCents;
+
+    let merchantFeeCents = 0;
+    if (pass_merchant_fee) {
+      merchantFeeCents = Math.round(preTotal * STRIPE_PROCESSING_RATE + STRIPE_PROCESSING_FIXED);
+    }
+
+    const totalCents = preTotal + merchantFeeCents;
+    const applicationFeeCents = Math.round(totalCents * (FEE_PERCENT / 100));
+
+    // Delete old Stripe invoice and create a new one
+    if (existing.stripe_invoice_id) {
+      try {
+        await stripe.invoices.del(existing.stripe_invoice_id, {}, { stripeAccount: CONNECTED_ACCOUNT });
+      } catch (e) {
+        // If delete fails (already voided, etc.), continue
+      }
+    }
+
+    // Recreate on Stripe
+    const email = customer_email || existing.customer_email;
+    const name = customer_name || existing.customer_name;
+
+    const existingCustomers = await stripe.customers.list(
+      { email, limit: 1 },
+      { stripeAccount: CONNECTED_ACCOUNT }
+    );
+
+    let customer;
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
+    } else {
+      customer = await stripe.customers.create(
+        { email, name: name || undefined },
+        { stripeAccount: CONNECTED_ACCOUNT }
+      );
+    }
+
+    await stripe.invoiceItems.create(
+      {
+        customer: customer.id,
+        amount: subtotalCents,
+        currency: "usd",
+        description:
+          (class_name || "Tutoring Session") +
+          (description ? ` — ${description}` : "") +
+          ` (${hoursNum} hr${hoursNum !== 1 ? "s" : ""} x $${rateNum.toFixed(2)}/hr)`,
+      },
+      { stripeAccount: CONNECTED_ACCOUNT }
+    );
+
+    if (extraFeeCents > 0) {
+      await stripe.invoiceItems.create(
+        { customer: customer.id, amount: extraFeeCents, currency: "usd", description: extra_fee_label || "Additional Fee" },
+        { stripeAccount: CONNECTED_ACCOUNT }
+      );
+    }
+    if (discountCents > 0) {
+      await stripe.invoiceItems.create(
+        { customer: customer.id, amount: -discountCents, currency: "usd", description: discount_label || "Discount" },
+        { stripeAccount: CONNECTED_ACCOUNT }
+      );
+    }
+    if (taxAmountCents > 0) {
+      await stripe.invoiceItems.create(
+        { customer: customer.id, amount: taxAmountCents, currency: "usd", description: `Sales Tax (${taxRateNum}%)` },
+        { stripeAccount: CONNECTED_ACCOUNT }
+      );
+    }
+    if (merchantFeeCents > 0) {
+      await stripe.invoiceItems.create(
+        { customer: customer.id, amount: merchantFeeCents, currency: "usd", description: "Processing Fee" },
+        { stripeAccount: CONNECTED_ACCOUNT }
+      );
+    }
+
+    const dueTimestamp = due_date
+      ? Math.floor(new Date(due_date).getTime() / 1000)
+      : Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+
+    const stripeInvoice = await stripe.invoices.create(
+      {
+        customer: customer.id,
+        collection_method: "send_invoice",
+        due_date: dueTimestamp,
+        auto_advance: false,
+        application_fee_amount: applicationFeeCents,
+      },
+      { stripeAccount: CONNECTED_ACCOUNT }
+    );
+
+    // Update our DB record
+    const { data: updated, error } = await supabase
+      .from("invoices")
+      .update({
+        stripe_invoice_id: stripeInvoice.id,
+        stripe_hosted_url: stripeInvoice.hosted_invoice_url,
+        customer_email: email,
+        customer_name: name,
+        class_name: class_name || "",
+        description: description || "",
+        hours: hoursNum,
+        rate_per_hour: rateNum,
+        subtotal: subtotalCents,
+        extra_fee: extraFeeCents,
+        extra_fee_label: extra_fee_label || "",
+        discount: discountCents,
+        discount_label: discount_label || "",
+        tax_rate: taxRateNum,
+        tax_amount: taxAmountCents,
+        merchant_fee: merchantFeeCents,
+        pass_merchant_fee: !!pass_merchant_fee,
+        application_fee: applicationFeeCents,
+        total: totalCents,
+        due_date: due_date || new Date(dueTimestamp * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", req.params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ success: true, invoice: updated });
+  } catch (err) {
+    console.error("Update invoice error:", err);
+    res.status(500).json({ error: "Failed to update invoice", details: err.message });
+  }
+});
+
 // POST /api/invoices/:id/send — Finalize & send invoice
 router.post("/:id/send", requireRole("owner", "admin"), async (req, res) => {
   try {

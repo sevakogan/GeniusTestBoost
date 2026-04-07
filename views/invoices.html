@@ -108,6 +108,7 @@
             </div>
             <input type="hidden" id="custEmail">
             <input type="hidden" id="custName">
+            <input type="hidden" id="editId">
           </div>
 
           <!-- Step 2: Due Date -->
@@ -483,11 +484,23 @@
         tdActions.className = 'action-cell';
 
         if (inv.status === 'draft') {
+          const editBtn = document.createElement('button');
+          editBtn.className = 'btn-ghost-sm';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', (e) => { e.stopPropagation(); editInvoice(inv); });
+          tdActions.appendChild(editBtn);
+
           const sendBtn = document.createElement('button');
           sendBtn.className = 'btn-primary-sm';
           sendBtn.textContent = 'Send';
           sendBtn.addEventListener('click', (e) => { e.stopPropagation(); sendInvoice(inv.id); });
           tdActions.appendChild(sendBtn);
+
+          const voidBtn = document.createElement('button');
+          voidBtn.className = 'btn-danger-sm';
+          voidBtn.textContent = 'Void';
+          voidBtn.addEventListener('click', (e) => { e.stopPropagation(); voidInvoice(inv.id); });
+          tdActions.appendChild(voidBtn);
         }
 
         // Preview button — always show for any status
@@ -540,12 +553,15 @@
       const errEl = document.getElementById('invoiceError');
       errEl.classList.remove('visible');
       const btn = document.getElementById('createBtn');
-      btn.textContent = 'Creating...';
+      const editId = document.getElementById('editId').value;
+      const isEdit = !!editId;
+      btn.textContent = isEdit ? 'Saving...' : 'Creating...';
       btn.disabled = true;
 
       try {
-        const res = await fetch('/api/invoices', {
-          method: 'POST',
+        const url = isEdit ? '/api/invoices/' + editId : '/api/invoices';
+        const res = await fetch(url, {
+          method: isEdit ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
@@ -568,15 +584,7 @@
 
         const result = await res.json();
         if (res.ok && result.success) {
-          // Reset form
-          clearStudent();
-          document.getElementById('invoiceForm').reset();
-          const d = new Date(); d.setDate(d.getDate() + 30);
-          document.getElementById('dueDate').value = d.toISOString().split('T')[0];
-          discountType = 'flat';
-          document.getElementById('discFlat').className = 'active';
-          document.getElementById('discPct').className = '';
-          updatePreview();
+          resetForm();
           await loadInvoices();
         } else {
           errEl.textContent = result.error || result.details || 'Failed to create invoice';
@@ -587,9 +595,62 @@
         errEl.classList.add('visible');
       }
 
-      btn.textContent = 'Create Invoice';
+      btn.textContent = document.getElementById('editId').value ? 'Save Changes' : 'Create Invoice';
       btn.disabled = false;
     });
+
+    function resetForm() {
+      clearStudent();
+      document.getElementById('invoiceForm').reset();
+      document.getElementById('editId').value = '';
+      const d = new Date(); d.setDate(d.getDate() + 30);
+      document.getElementById('dueDate').value = d.toISOString().split('T')[0];
+      discountType = 'flat';
+      document.getElementById('discFlat').className = 'active';
+      document.getElementById('discPct').className = '';
+      document.getElementById('createBtn').textContent = 'Create Invoice';
+      updatePreview();
+    }
+
+    function editInvoice(inv) {
+      // Populate student
+      selectStudent({ name: inv.customer_name, email: inv.customer_email, phone: '' });
+
+      // Set edit mode
+      document.getElementById('editId').value = inv.id;
+      document.getElementById('createBtn').textContent = 'Save Changes';
+
+      // Populate fields
+      document.getElementById('dueDate').value = inv.due_date ? inv.due_date.split('T')[0] : '';
+      document.getElementById('className').value = inv.class_name || '';
+      document.getElementById('description').value = inv.description || '';
+      document.getElementById('hours').value = inv.hours || '';
+      document.getElementById('ratePerHour').value = inv.rate_per_hour || '';
+      document.getElementById('extraFee').value = inv.extra_fee > 0 ? (inv.extra_fee / 100).toFixed(2) : '';
+      document.getElementById('extraFeeLabel').value = inv.extra_fee_label || '';
+      document.getElementById('taxRate').value = inv.tax_rate > 0 ? inv.tax_rate : '';
+      document.getElementById('passFee').checked = inv.pass_merchant_fee || false;
+
+      // Discount — figure out if it was percentage or flat
+      if (inv.discount > 0) {
+        // Default to flat
+        discountType = 'flat';
+        document.getElementById('discFlat').className = 'active';
+        document.getElementById('discPct').className = '';
+        document.getElementById('discountValue').value = (inv.discount / 100).toFixed(2);
+        document.getElementById('discountLabel').value = inv.discount_label || '';
+      }
+
+      updatePreview();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function voidInvoice(id) {
+      if (!confirm('Void this invoice? This cannot be undone.')) return;
+      const res = await fetch('/api/invoices/' + id + '/void', { method: 'POST', credentials: 'include' });
+      if (res.ok) { await loadInvoices(); }
+      else { const r = await res.json(); alert(r.error || 'Failed to void'); }
+    }
 
     async function sendInvoice(id) {
       if (!confirm('Send this invoice to the student?')) return;
