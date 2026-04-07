@@ -115,6 +115,20 @@
   <style>
     .btn-copy { background: rgba(255,255,255,0.08); color: #e0e0e8; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); font-family: inherit; }
     .btn-copy:hover { background: rgba(255,255,255,0.12); }
+    .signature-section { padding: 24px 48px 0; text-align: center; }
+    .signature-section h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 12px; }
+    .signature-canvas-wrap {
+      display: inline-block; background: #fff; border: 2px dashed #ccc; border-radius: 10px;
+      position: relative; cursor: crosshair;
+    }
+    .signature-canvas-wrap canvas { display: block; border-radius: 8px; }
+    .signature-actions { margin-top: 8px; display: flex; justify-content: center; gap: 12px; }
+    .signature-actions button {
+      background: none; border: 1px solid #ccc; color: #666; padding: 4px 14px;
+      border-radius: 6px; font-size: 11px; cursor: pointer; font-family: inherit;
+    }
+    .signature-label { font-size: 12px; color: #aaa; margin-top: 6px; }
+    .signature-required { color: #e74c3c; font-size: 12px; margin-top: 8px; display: none; }
     .pay-banner { text-align: center; padding: 32px 48px; background: linear-gradient(135deg, #1a1a2e, #2d2d44); }
     .pay-banner .pay-amount { font-size: 36px; font-weight: 800; color: #C9A84C; margin-bottom: 8px; }
     .pay-banner .pay-status { font-size: 14px; color: #888; margin-bottom: 20px; }
@@ -159,6 +173,18 @@
 
     <div class="invoice-totals">
       <div class="totals-box" id="totalsBox"></div>
+    </div>
+
+    <div class="signature-section" id="signatureSection" style="display:none">
+      <h4>Signature Required</h4>
+      <div class="signature-canvas-wrap">
+        <canvas id="signatureCanvas" width="400" height="150"></canvas>
+      </div>
+      <div class="signature-actions">
+        <button type="button" onclick="clearSignature()">Clear</button>
+      </div>
+      <p class="signature-label">Sign above to accept terms and authorize payment</p>
+      <p class="signature-required" id="sigRequired">Please sign above before paying</p>
     </div>
 
     <div class="pay-banner" id="payBanner" style="display:none"></div>
@@ -327,6 +353,10 @@
       // Pay banner
       const payBanner = document.getElementById('payBanner');
       if ((inv.status === 'sent' || inv.status === 'draft') && inv.stripe_hosted_url) {
+        // Show signature section
+        document.getElementById('signatureSection').style.display = '';
+        initSignature();
+
         const amountDiv = document.createElement('div');
         amountDiv.className = 'pay-amount';
         amountDiv.textContent = '$' + (inv.total / 100).toFixed(2);
@@ -337,6 +367,13 @@
         payLink.className = 'pay-btn';
         payLink.href = inv.stripe_hosted_url;
         payLink.textContent = 'Pay Now';
+        payLink.addEventListener('click', (e) => {
+          if (!sigHasContent) {
+            e.preventDefault();
+            document.getElementById('sigRequired').style.display = 'block';
+            document.getElementById('signatureSection').scrollIntoView({ behavior: 'smooth' });
+          }
+        });
         payBanner.appendChild(amountDiv);
         payBanner.appendChild(statusDiv);
         payBanner.appendChild(payLink);
@@ -372,6 +409,58 @@
       div.appendChild(spanLabel);
       div.appendChild(spanValue);
       box.appendChild(div);
+    }
+
+    // --- Signature Pad ---
+    let sigCanvas, sigCtx, sigDrawing = false, sigHasContent = false;
+
+    function initSignature() {
+      sigCanvas = document.getElementById('signatureCanvas');
+      if (!sigCanvas) return;
+      sigCtx = sigCanvas.getContext('2d');
+      sigCtx.strokeStyle = '#1a1a2e';
+      sigCtx.lineWidth = 2;
+      sigCtx.lineCap = 'round';
+      sigCtx.lineJoin = 'round';
+
+      // Mouse events
+      sigCanvas.addEventListener('mousedown', sigStart);
+      sigCanvas.addEventListener('mousemove', sigMove);
+      sigCanvas.addEventListener('mouseup', sigEnd);
+      sigCanvas.addEventListener('mouseleave', sigEnd);
+
+      // Touch events
+      sigCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); sigStart(touchPos(e)); }, { passive: false });
+      sigCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); sigMove(touchPos(e)); }, { passive: false });
+      sigCanvas.addEventListener('touchend', sigEnd);
+    }
+
+    function touchPos(e) {
+      const rect = sigCanvas.getBoundingClientRect();
+      const t = e.touches[0];
+      return { offsetX: t.clientX - rect.left, offsetY: t.clientY - rect.top };
+    }
+
+    function sigStart(e) {
+      sigDrawing = true;
+      sigCtx.beginPath();
+      sigCtx.moveTo(e.offsetX, e.offsetY);
+    }
+
+    function sigMove(e) {
+      if (!sigDrawing) return;
+      sigCtx.lineTo(e.offsetX, e.offsetY);
+      sigCtx.stroke();
+      sigHasContent = true;
+      document.getElementById('sigRequired').style.display = 'none';
+    }
+
+    function sigEnd() { sigDrawing = false; }
+
+    function clearSignature() {
+      if (!sigCtx) return;
+      sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      sigHasContent = false;
     }
 
     init();
