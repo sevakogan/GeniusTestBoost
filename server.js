@@ -1,4 +1,7 @@
 import "dotenv/config";
+
+// Required for Supabase pooler SSL on Vercel
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
