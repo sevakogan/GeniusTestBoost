@@ -84,7 +84,7 @@ router.get("/conversations", async (req, res) => {
     for (const conv of conversations) {
       const { data: partner } = await supabase
         .from("user")
-        .select("first_name, last_name, name, role")
+        .select("firstName, lastName, name, role")
         .eq("id", conv.partner_id)
         .single();
       conv.partner = partner;
@@ -122,7 +122,7 @@ router.get("/contacts", async (req, res) => {
         if (teacherIds.length > 0) {
           const { data: teachers } = await supabase
             .from("user")
-            .select("id, first_name, last_name, name, role")
+            .select("id, firstName, lastName, name, role")
             .in("id", teacherIds);
           contacts = teachers || [];
         }
@@ -146,7 +146,7 @@ router.get("/contacts", async (req, res) => {
         if (studentIds.length > 0) {
           const { data: students } = await supabase
             .from("user")
-            .select("id, first_name, last_name, name, role")
+            .select("id, firstName, lastName, name, role")
             .in("id", studentIds);
           contacts = students || [];
         }
@@ -155,7 +155,7 @@ router.get("/contacts", async (req, res) => {
       // Owner/Admin can message anyone
       const { data: users } = await supabase
         .from("user")
-        .select("id, first_name, last_name, name, role")
+        .select("id, firstName, lastName, name, role")
         .neq("id", id);
       contacts = users || [];
     }
@@ -192,7 +192,7 @@ router.get("/conversation/:userId", async (req, res) => {
 
     const { data: partner } = await supabase
       .from("user")
-      .select("first_name, last_name, name, role")
+      .select("firstName, lastName, name, role")
       .eq("id", partnerId)
       .single();
 

@@ -13,7 +13,7 @@ router.get("/stats", async (req, res) => {
   try {
     const { data: users } = await supabase
       .from("user")
-      .select("role, is_approved");
+      .select("role, isApproved");
     const { data: courses } = await supabase.from("courses").select("id");
 
     const stats = {
@@ -22,7 +22,7 @@ router.get("/stats", async (req, res) => {
       totalAdmins: users.filter((u) => u.role === ROLES.ADMIN).length,
       totalOwners: users.filter((u) => u.role === ROLES.OWNER).length,
       pendingApprovals: users.filter(
-        (u) => u.role === ROLES.TEACHER && !u.is_approved
+        (u) => u.role === ROLES.TEACHER && !u.isApproved
       ).length,
       totalCourses: courses ? courses.length : 0,
       totalUsers: users.length,
@@ -43,13 +43,13 @@ router.get("/users", async (req, res) => {
     let query = supabase
       .from("user")
       .select(
-        "id, first_name, last_name, name, email, role, is_approved, created_at, image"
+        "id, firstName, lastName, name, email, role, isApproved, createdAt, image"
       )
-      .order("created_at", { ascending: false });
+      .order("createdAt", { ascending: false });
 
     if (role) query = query.eq("role", role);
     if (approved !== undefined)
-      query = query.eq("is_approved", approved === "true");
+      query = query.eq("isApproved", approved === "true");
 
     const { data: users, error } = await query;
 
@@ -67,7 +67,7 @@ router.get("/users/:id", async (req, res) => {
     const { data: user, error } = await supabase
       .from("user")
       .select(
-        "id, first_name, last_name, name, email, role, is_approved, created_at, image"
+        "id, firstName, lastName, name, email, role, isApproved, createdAt, image"
       )
       .eq("id", req.params.id)
       .single();
@@ -83,7 +83,7 @@ router.get("/users/:id", async (req, res) => {
 router.put("/users/:id", async (req, res) => {
   try {
     const targetId = req.params.id;
-    const { first_name, last_name, email, role } = req.body;
+    const { firstName, lastName, email, role } = req.body;
 
     // Get target user to check their role
     const { data: targetUser } = await supabase
@@ -112,8 +112,8 @@ router.put("/users/:id", async (req, res) => {
     }
 
     const updates = {};
-    if (first_name) updates.first_name = first_name;
-    if (last_name) updates.last_name = last_name;
+    if (firstName) updates.firstName = firstName;
+    if (lastName) updates.lastName = lastName;
     if (email) updates.email = email;
     if (role) {
       // Only owners can assign owner/admin roles
@@ -129,9 +129,9 @@ router.put("/users/:id", async (req, res) => {
     }
 
     // Update name field from first/last
-    if (first_name || last_name) {
-      const newFirst = first_name || targetUser.first_name || "";
-      const newLast = last_name || targetUser.last_name || "";
+    if (firstName || lastName) {
+      const newFirst = firstName || targetUser.firstName || "";
+      const newLast = lastName || targetUser.lastName || "";
       updates.name = [newFirst, newLast].filter(Boolean).join(" ");
     }
 
@@ -197,7 +197,7 @@ router.post("/users/:id/approve", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("user")
-      .update({ is_approved: true })
+      .update({ isApproved: true })
       .eq("id", req.params.id)
       .eq("role", ROLES.TEACHER)
       .select()
@@ -216,7 +216,7 @@ router.post("/users/:id/reject", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("user")
-      .update({ is_approved: false })
+      .update({ isApproved: false })
       .eq("id", req.params.id)
       .eq("role", ROLES.TEACHER)
       .select()
@@ -238,7 +238,7 @@ router.post(
     try {
       const { data, error } = await supabase
         .from("user")
-        .update({ role: ROLES.ADMIN, is_approved: true })
+        .update({ role: ROLES.ADMIN, isApproved: true })
         .eq("id", req.params.id)
         .select()
         .single();
@@ -288,10 +288,10 @@ router.get("/pending-teachers", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("user")
-      .select("id, first_name, last_name, name, email, created_at")
+      .select("id, firstName, lastName, name, email, createdAt")
       .eq("role", ROLES.TEACHER)
-      .eq("is_approved", false)
-      .order("created_at", { ascending: false });
+      .eq("isApproved", false)
+      .order("createdAt", { ascending: false });
 
     if (error) throw error;
     res.json(data);
@@ -315,7 +315,7 @@ router.get("/courses", async (req, res) => {
     for (const course of courses || []) {
       const { data: teacher } = await supabase
         .from("user")
-        .select("first_name, last_name, name, email")
+        .select("firstName, lastName, name, email")
         .eq("id", course.teacher_id)
         .single();
       course.teacher = teacher;

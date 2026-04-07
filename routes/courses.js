@@ -38,7 +38,7 @@ router.get("/", async (req, res) => {
       for (const course of courses) {
         const { data: teacher } = await supabase
           .from("user")
-          .select("first_name, last_name, name")
+          .select("firstName, lastName, name")
           .eq("id", course.teacher_id)
           .single();
         course.teacher = teacher;
@@ -88,7 +88,7 @@ router.get("/", async (req, res) => {
       for (const course of courses) {
         const { data: teacher } = await supabase
           .from("user")
-          .select("first_name, last_name, name")
+          .select("firstName, lastName, name")
           .eq("id", course.teacher_id)
           .single();
         course.teacher = teacher;
@@ -129,7 +129,7 @@ router.get("/available", requireRole("student"), async (req, res) => {
     for (const course of courses) {
       const { data: teacher } = await supabase
         .from("user")
-        .select("first_name, last_name, name")
+        .select("firstName, lastName, name")
         .eq("id", course.teacher_id)
         .single();
       course.teacher = teacher;
@@ -163,7 +163,7 @@ router.get("/:id", async (req, res) => {
 
     const { data: teacher } = await supabase
       .from("user")
-      .select("first_name, last_name, name, email")
+      .select("firstName, lastName, name, email")
       .eq("id", course.teacher_id)
       .single();
     course.teacher = teacher;
@@ -391,7 +391,7 @@ router.get(
       const studentIds = enrollments.map((e) => e.student_id);
       const { data: students } = await supabase
         .from("user")
-        .select("id, first_name, last_name, name, email")
+        .select("id, firstName, lastName, name, email")
         .in("id", studentIds);
 
       const enrollMap = {};

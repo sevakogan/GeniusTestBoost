@@ -111,7 +111,7 @@ router.get(
       for (const sub of submissions || []) {
         const { data: student } = await supabase
           .from("user")
-          .select("first_name, last_name, name")
+          .select("firstName, lastName, name")
           .eq("id", sub.student_id)
           .single();
         sub.student = student;
@@ -456,7 +456,7 @@ router.get(
       for (const sub of submissions || []) {
         const { data: student } = await supabase
           .from("user")
-          .select("first_name, last_name, name, email")
+          .select("firstName, lastName, name, email")
           .eq("id", sub.student_id)
           .single();
         sub.student = student;

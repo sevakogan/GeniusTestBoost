@@ -84,11 +84,11 @@ app.get("/messages", requireAuth, (req, res) => {
 app.get("/api/user", requireAuth, (req, res) => {
   res.json({
     id: req.user.id,
-    firstName: req.user.first_name || req.user.name?.split(" ")[0] || "",
-    lastName: req.user.last_name || req.user.name?.split(" ").slice(1).join(" ") || "",
+    firstName: req.user.firstName || req.user.name?.split(" ")[0] || "",
+    lastName: req.user.lastName || req.user.name?.split(" ").slice(1).join(" ") || "",
     email: req.user.email,
     role: req.user.role,
-    isApproved: req.user.is_approved,
+    isApproved: req.user.isApproved,
     image: req.user.image,
   });
 });

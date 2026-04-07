@@ -61,11 +61,11 @@ async function requireApproved(req, res, next) {
     // For teachers, check approval status from the user table
     const { data: user, error } = await supabase
       .from("user")
-      .select("is_approved")
+      .select("isApproved")
       .eq("id", req.user.id)
       .single();
 
-    if (error || !user || !user.is_approved) {
+    if (error || !user || !user.isApproved) {
       return res
         .status(403)
         .json({ error: "Your account is pending admin approval" });
