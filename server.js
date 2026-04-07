@@ -14,12 +14,17 @@ import assignmentRoutes from "./routes/assignments.js";
 import messageRoutes from "./routes/messages.js";
 import adminRoutes from "./routes/admin.js";
 import authRoutes from "./routes/auth.js";
+import invoiceRoutes from "./routes/invoices.js";
+import stripeWebhookRoutes from "./routes/stripe-webhook.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5432;
+
+// Stripe webhook — needs raw body, MUST come before express.json()
+app.use("/api/stripe/webhook", stripeWebhookRoutes);
 
 // better-auth catch-all — MUST come before express.json()
 const authHandler = toNodeHandler(auth);
@@ -41,6 +46,7 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/invoices", invoiceRoutes);
 
 // Page routes
 app.get("/", (req, res) => {
@@ -74,6 +80,13 @@ app.get("/course/:id", requireAuth, (req, res) => {
 
 app.get("/assignment/:id", requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "views", "assignment-detail.html"));
+});
+
+app.get("/invoices", requireAuth, (req, res) => {
+  if (req.user.role !== "owner" && req.user.role !== "admin") {
+    return res.redirect("/dashboard");
+  }
+  res.sendFile(path.join(__dirname, "views", "invoices.html"));
 });
 
 app.get("/messages", requireAuth, (req, res) => {

@@ -183,6 +183,20 @@ a:hover { color: #E8D48B; }
   white-space: nowrap;
 }
 
+/* ========== INVOICE STYLES ========== */
+.invoice-form-card {
+  background: #14141f;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 28px;
+}
+.status-pill { display: inline-block; padding: 4px 12px; border-radius: 50px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.status-pill.draft { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
+.status-pill.sent { background: rgba(52,152,219,0.15); color: #3498db; }
+.status-pill.paid { background: rgba(39,174,96,0.15); color: #27ae60; }
+.status-pill.overdue { background: rgba(231,76,60,0.15); color: #e74c3c; }
+.status-pill.void { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3); text-decoration: line-through; }
+
 /* ========== DASHBOARD MAIN ========== */
 .dash-main { max-width: 1200px; margin: 0 auto; padding: 32px 28px; }
 
