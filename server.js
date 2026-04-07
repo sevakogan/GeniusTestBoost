@@ -19,7 +19,13 @@ const app = express();
 const PORT = process.env.PORT || 5432;
 
 // better-auth catch-all — MUST come before express.json()
-app.all("/api/auth/*", toNodeHandler(auth));
+const authHandler = toNodeHandler(auth);
+app.all("/api/auth/*", (req, res) => {
+  authHandler(req, res).catch((err) => {
+    console.error("Auth error:", err);
+    res.status(500).json({ error: "Internal auth error", message: err.message });
+  });
+});
 
 // Middleware
 app.use(express.json());
