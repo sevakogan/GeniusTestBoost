@@ -356,12 +356,19 @@ router.post("/", requireRole("owner", "admin"), async (req, res) => {
       { stripeAccount: CONNECTED_ACCOUNT }
     );
 
+    // 3b. Finalize the invoice so hosted_invoice_url is generated
+    const finalizedInvoice = await stripe.invoices.finalizeInvoice(
+      stripeInvoice.id,
+      {},
+      { stripeAccount: CONNECTED_ACCOUNT }
+    );
+
     // 4. Save to our database
     const { data: invoice, error } = await supabase
       .from("invoices")
       .insert({
-        stripe_invoice_id: stripeInvoice.id,
-        stripe_hosted_url: stripeInvoice.hosted_invoice_url,
+        stripe_invoice_id: finalizedInvoice.id,
+        stripe_hosted_url: finalizedInvoice.hosted_invoice_url,
         customer_email,
         customer_name: customer_name || "",
         class_name: class_name || "",
@@ -538,12 +545,19 @@ router.put("/:id", requireRole("owner", "admin"), async (req, res) => {
       { stripeAccount: CONNECTED_ACCOUNT }
     );
 
+    // Finalize so hosted URL is generated
+    const finalizedEdit = await stripe.invoices.finalizeInvoice(
+      stripeInvoice.id,
+      {},
+      { stripeAccount: CONNECTED_ACCOUNT }
+    );
+
     // Update our DB record
     const { data: updated, error } = await supabase
       .from("invoices")
       .update({
-        stripe_invoice_id: stripeInvoice.id,
-        stripe_hosted_url: stripeInvoice.hosted_invoice_url,
+        stripe_invoice_id: finalizedEdit.id,
+        stripe_hosted_url: finalizedEdit.hosted_invoice_url,
         customer_email: email,
         customer_name: name,
         class_name: class_name || "",
@@ -588,16 +602,11 @@ router.post("/:id/send", requireRole("owner", "admin"), async (req, res) => {
     if (fetchErr || !invoice)
       return res.status(404).json({ error: "Invoice not found" });
 
-    if (invoice.status !== "draft") {
-      return res.status(400).json({ error: "Only draft invoices can be sent" });
+    if (invoice.status === "paid" || invoice.status === "void") {
+      return res.status(400).json({ error: "Cannot send a paid or voided invoice" });
     }
 
-    const finalized = await stripe.invoices.finalizeInvoice(
-      invoice.stripe_invoice_id,
-      {},
-      { stripeAccount: CONNECTED_ACCOUNT }
-    );
-
+    // Send the invoice email via Stripe
     await stripe.invoices.sendInvoice(
       invoice.stripe_invoice_id,
       {},
@@ -608,7 +617,6 @@ router.post("/:id/send", requireRole("owner", "admin"), async (req, res) => {
       .from("invoices")
       .update({
         status: "sent",
-        stripe_hosted_url: finalized.hosted_invoice_url,
         updated_at: new Date().toISOString(),
       })
       .eq("id", req.params.id);
@@ -619,13 +627,13 @@ router.post("/:id/send", requireRole("owner", "admin"), async (req, res) => {
     sendInvoiceCreatedToStudent({
       email: invoice.customer_email,
       name: invoice.customer_name,
-      invoiceUrl: finalized.hosted_invoice_url,
+      invoiceUrl: invoice.stripe_hosted_url,
       amount: invoice.total,
       description: invoice.class_name || invoice.description || "Tutoring Services",
       dueDate: invoice.due_date,
     }).catch(() => {});
 
-    res.json({ success: true, hosted_url: finalized.hosted_invoice_url });
+    res.json({ success: true, hosted_url: invoice.stripe_hosted_url });
   } catch (err) {
     console.error("Send invoice error:", err);
     res.status(500).json({

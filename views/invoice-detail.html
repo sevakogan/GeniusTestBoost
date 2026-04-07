@@ -326,7 +326,7 @@
 
       // Pay banner
       const payBanner = document.getElementById('payBanner');
-      if (inv.status === 'sent' && inv.stripe_hosted_url) {
+      if ((inv.status === 'sent' || inv.status === 'draft') && inv.stripe_hosted_url) {
         const amountDiv = document.createElement('div');
         amountDiv.className = 'pay-amount';
         amountDiv.textContent = '$' + (inv.total / 100).toFixed(2);
