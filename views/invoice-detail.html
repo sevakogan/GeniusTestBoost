@@ -107,9 +107,21 @@
 </head>
 <body>
   <div class="invoice-actions" id="actionBar">
-    <a href="/invoices" class="btn-back">Back to Invoices</a>
+    <a href="/invoices" class="btn-back" id="backBtn">Back to Invoices</a>
     <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
+    <button class="btn-copy" id="copyLinkBtn" style="display:none" onclick="copyInvoiceLink()">Copy Link</button>
   </div>
+
+  <style>
+    .btn-copy { background: rgba(255,255,255,0.08); color: #e0e0e8; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); font-family: inherit; }
+    .btn-copy:hover { background: rgba(255,255,255,0.12); }
+    .pay-banner { text-align: center; padding: 32px 48px; background: linear-gradient(135deg, #1a1a2e, #2d2d44); }
+    .pay-banner .pay-amount { font-size: 36px; font-weight: 800; color: #C9A84C; margin-bottom: 8px; }
+    .pay-banner .pay-status { font-size: 14px; color: #888; margin-bottom: 20px; }
+    .pay-btn { display: inline-block; padding: 16px 48px; background: #C9A84C; color: #000; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 16px; transition: background 0.2s; }
+    .pay-btn:hover { background: #E8D48B; color: #000; }
+    .paid-badge { display: inline-block; padding: 10px 32px; background: #27ae60; color: #fff; border-radius: 10px; font-weight: 700; font-size: 16px; }
+  </style>
 
   <div class="invoice-page" id="invoicePage">
     <div class="invoice-header">
@@ -149,6 +161,8 @@
       <div class="totals-box" id="totalsBox"></div>
     </div>
 
+    <div class="pay-banner" id="payBanner" style="display:none"></div>
+
     <div class="invoice-footer">
       <div class="footer-terms" id="merchantFeeNote" style="display:none;margin-bottom:16px">
         <p style="font-size:11px;color:#999;font-style:italic">
@@ -177,24 +191,49 @@
 
   <script>
     const invoiceId = window.location.pathname.split('/invoice/')[1];
+    let invoiceData = null;
 
     async function init() {
-      const userRes = await fetch('/api/user', { credentials: 'include' });
-      if (!userRes.ok) { window.location.href = '/login'; return; }
-      const user = await userRes.json();
-
-      // Students see back to dashboard, not invoices
-      if (user.role === 'student') {
-        const backLink = document.querySelector('.btn-back');
-        backLink.href = '/dashboard';
-        backLink.textContent = 'Back to Dashboard';
+      // Try public endpoint first (works for shared links without login)
+      let inv = null;
+      const pubRes = await fetch('/api/invoices/public/' + invoiceId);
+      if (pubRes.ok) {
+        inv = await pubRes.json();
+      } else {
+        // Fall back to authenticated endpoint
+        const authRes = await fetch('/api/invoices/' + invoiceId, { credentials: 'include' });
+        if (!authRes.ok) { document.body.textContent = 'Invoice not found'; return; }
+        inv = await authRes.json();
       }
 
-      const res = await fetch('/api/invoices/' + invoiceId, { credentials: 'include' });
-      if (!res.ok) { alert('Invoice not found'); window.location.href = '/dashboard'; return; }
-      const inv = await res.json();
+      invoiceData = inv;
+
+      // Check if user is logged in to show admin controls
+      const userRes = await fetch('/api/user', { credentials: 'include' });
+      if (userRes.ok) {
+        const user = await userRes.json();
+        if (user.role === 'student') {
+          document.getElementById('backBtn').href = '/dashboard';
+          document.getElementById('backBtn').textContent = 'Back to Dashboard';
+        }
+      } else {
+        // Not logged in — hide back button, show just the invoice
+        document.getElementById('backBtn').style.display = 'none';
+      }
+
+      // Show copy link button
+      document.getElementById('copyLinkBtn').style.display = '';
 
       renderInvoice(inv);
+    }
+
+    function copyInvoiceLink() {
+      const url = window.location.origin + '/invoice/' + invoiceId;
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('copyLinkBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
+      });
     }
 
     function renderInvoice(inv) {
@@ -283,6 +322,37 @@
       // Show merchant fee note if applicable
       if (inv.merchant_fee > 0) {
         document.getElementById('merchantFeeNote').style.display = '';
+      }
+
+      // Pay banner
+      const payBanner = document.getElementById('payBanner');
+      if (inv.status === 'sent' && inv.stripe_hosted_url) {
+        const amountDiv = document.createElement('div');
+        amountDiv.className = 'pay-amount';
+        amountDiv.textContent = '$' + (inv.total / 100).toFixed(2);
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'pay-status';
+        statusDiv.textContent = 'Payment due by ' + (inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—');
+        const payLink = document.createElement('a');
+        payLink.className = 'pay-btn';
+        payLink.href = inv.stripe_hosted_url;
+        payLink.textContent = 'Pay Now';
+        payBanner.appendChild(amountDiv);
+        payBanner.appendChild(statusDiv);
+        payBanner.appendChild(payLink);
+        payBanner.style.display = '';
+      } else if (inv.status === 'paid') {
+        const badge = document.createElement('div');
+        badge.className = 'paid-badge';
+        badge.textContent = 'Paid';
+        payBanner.appendChild(badge);
+        payBanner.style.display = '';
+      } else if (inv.status === 'draft') {
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'pay-status';
+        statusDiv.textContent = 'This invoice is a draft and has not been sent yet.';
+        payBanner.appendChild(statusDiv);
+        payBanner.style.display = '';
       }
     }
 

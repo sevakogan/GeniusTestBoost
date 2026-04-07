@@ -16,6 +16,48 @@ const FEE_PERCENT = parseFloat(process.env.STRIPE_APPLICATION_FEE_PERCENT || "0.
 const STRIPE_PROCESSING_RATE = 0.029; // 2.9%
 const STRIPE_PROCESSING_FIXED = 30; // 30 cents
 
+// Public endpoint — no auth required (for shared invoice links)
+router.get("/public/:id", async (req, res) => {
+  try {
+    const { data: invoice, error } = await supabase
+      .from("invoices")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+
+    if (error || !invoice)
+      return res.status(404).json({ error: "Invoice not found" });
+
+    // Only return non-sensitive fields
+    res.json({
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      customer_name: invoice.customer_name,
+      customer_email: invoice.customer_email,
+      class_name: invoice.class_name,
+      description: invoice.description,
+      hours: invoice.hours,
+      rate_per_hour: invoice.rate_per_hour,
+      subtotal: invoice.subtotal,
+      extra_fee: invoice.extra_fee,
+      extra_fee_label: invoice.extra_fee_label,
+      discount: invoice.discount,
+      discount_label: invoice.discount_label,
+      tax_rate: invoice.tax_rate,
+      tax_amount: invoice.tax_amount,
+      merchant_fee: invoice.merchant_fee,
+      total: invoice.total,
+      status: invoice.status,
+      due_date: invoice.due_date,
+      created_at: invoice.created_at,
+      stripe_hosted_url: invoice.stripe_hosted_url,
+    });
+  } catch (err) {
+    console.error("Public invoice error:", err);
+    res.status(500).json({ error: "Failed to load invoice" });
+  }
+});
+
 router.use(requireAuth);
 
 // GET /api/invoices/search-students?q= — Search students by name/email

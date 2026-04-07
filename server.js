@@ -82,7 +82,8 @@ app.get("/assignment/:id", requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "views", "assignment-detail.html"));
 });
 
-app.get("/invoice/:id", requireAuth, (req, res) => {
+// Public — no auth required so students can view via shared link
+app.get("/invoice/:id", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "invoice-detail.html"));
 });
 
