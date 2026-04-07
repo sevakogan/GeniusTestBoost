@@ -59,6 +59,31 @@
       cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; transition: all 0.15s;
     }
     .discount-type-toggle button.active { background: #C9A84C; color: #000; }
+
+    .send-dropdown-wrap { position: relative; display: inline-block; }
+    .send-dropdown {
+      display: none; position: absolute; right: 0; top: 100%; margin-top: 6px;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+      padding: 12px; min-width: 220px; z-index: 20; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .send-dropdown.active { display: block; }
+    .send-option {
+      display: flex; align-items: center; gap: 10px; padding: 10px 8px;
+      cursor: pointer; border-radius: 8px; transition: background 0.15s;
+    }
+    .send-option:hover { background: rgba(255,255,255,0.05); }
+    .send-option input[type=checkbox] { width: 16px; height: 16px; accent-color: #C9A84C; }
+    .send-option span { font-size: 13px; font-weight: 500; }
+    .send-option.preview-link { border-top: 1px solid rgba(255,255,255,0.06); margin-top: 4px; padding-top: 12px; }
+    .send-option.preview-link a { color: #C9A84C; font-size: 13px; font-weight: 500; text-decoration: none; }
+    .send-option.preview-link a:hover { text-decoration: underline; }
+    .send-confirm-btn {
+      width: 100%; margin-top: 8px; padding: 10px; background: #C9A84C; color: #000;
+      border: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;
+      font-family: inherit; transition: background 0.15s;
+    }
+    .send-confirm-btn:hover { background: #E8D48B; }
+    .send-confirm-btn:disabled { opacity: 0.6; cursor: default; }
   </style>
 </head>
 <body>
@@ -255,6 +280,9 @@
       document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-wrap')) {
           document.getElementById('searchResults').classList.remove('active');
+        }
+        if (!e.target.closest('.send-dropdown-wrap')) {
+          document.querySelectorAll('.send-dropdown.active').forEach(d => d.classList.remove('active'));
         }
       });
 
@@ -490,12 +518,6 @@
           editBtn.addEventListener('click', (e) => { e.stopPropagation(); editInvoice(inv); });
           tdActions.appendChild(editBtn);
 
-          const sendBtn = document.createElement('button');
-          sendBtn.className = 'btn-primary-sm';
-          sendBtn.textContent = 'Send';
-          sendBtn.addEventListener('click', (e) => { e.stopPropagation(); sendInvoice(inv.id); });
-          tdActions.appendChild(sendBtn);
-
           const voidBtn = document.createElement('button');
           voidBtn.className = 'btn-danger-sm';
           voidBtn.textContent = 'Void';
@@ -503,27 +525,97 @@
           tdActions.appendChild(voidBtn);
         }
 
-        // Preview button — always show for any status
-        const previewBtn = document.createElement('a');
-        previewBtn.className = 'btn-ghost-sm';
-        previewBtn.textContent = 'Preview';
-        previewBtn.href = '/invoice/' + inv.id;
-        previewBtn.addEventListener('click', (e) => e.stopPropagation());
-        tdActions.appendChild(previewBtn);
+        // Combined Send button with dropdown
+        const sendWrap = document.createElement('div');
+        sendWrap.className = 'send-dropdown-wrap';
+        sendWrap.addEventListener('click', (e) => e.stopPropagation());
 
-        // Copy invoice link — always available
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'btn-ghost-sm';
-        copyBtn.textContent = 'Copy Link';
-        copyBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const url = window.location.origin + '/invoice/' + inv.id;
-          navigator.clipboard.writeText(url).then(() => {
-            copyBtn.textContent = 'Copied!';
-            setTimeout(() => { copyBtn.textContent = 'Copy Link'; }, 2000);
+        const sendBtn = document.createElement('button');
+        sendBtn.className = 'btn-primary-sm';
+        sendBtn.textContent = 'Send';
+        sendBtn.addEventListener('click', () => {
+          // Close all other dropdowns first
+          document.querySelectorAll('.send-dropdown.active').forEach(d => {
+            if (d !== dropdown) d.classList.remove('active');
           });
+          dropdown.classList.toggle('active');
         });
-        tdActions.appendChild(copyBtn);
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'send-dropdown';
+
+        // SMS option
+        const smsRow = document.createElement('label');
+        smsRow.className = 'send-option';
+        const smsCheck = document.createElement('input');
+        smsCheck.type = 'checkbox';
+        smsCheck.dataset.type = 'sms';
+        const smsLabel = document.createElement('span');
+        smsLabel.textContent = 'Via SMS (Copy Link)';
+        smsRow.appendChild(smsCheck);
+        smsRow.appendChild(smsLabel);
+
+        // Email option
+        const emailRow = document.createElement('label');
+        emailRow.className = 'send-option';
+        const emailCheck = document.createElement('input');
+        emailCheck.type = 'checkbox';
+        emailCheck.dataset.type = 'email';
+        const emailLabel = document.createElement('span');
+        emailLabel.textContent = 'Via Email';
+        emailRow.appendChild(emailCheck);
+        emailRow.appendChild(emailLabel);
+
+        // Preview option
+        const previewRow = document.createElement('div');
+        previewRow.className = 'send-option preview-link';
+        const previewLink = document.createElement('a');
+        previewLink.href = '/invoice/' + inv.id;
+        previewLink.target = '_blank';
+        previewLink.textContent = 'Preview Invoice';
+        previewRow.appendChild(previewLink);
+
+        // Send button inside dropdown
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'send-confirm-btn';
+        confirmBtn.textContent = 'Send Now';
+        confirmBtn.addEventListener('click', async () => {
+          const doSms = smsCheck.checked;
+          const doEmail = emailCheck.checked;
+          if (!doSms && !doEmail) { return; }
+
+          confirmBtn.textContent = 'Sending...';
+          confirmBtn.disabled = true;
+
+          const invoiceUrl = window.location.origin + '/invoice/' + inv.id;
+
+          if (doEmail) {
+            // Finalize on Stripe + send email
+            await fetch('/api/invoices/' + inv.id + '/send', { method: 'POST', credentials: 'include' });
+          }
+
+          if (doSms) {
+            await navigator.clipboard.writeText(invoiceUrl);
+            confirmBtn.textContent = 'Link Copied!';
+            setTimeout(() => {
+              confirmBtn.textContent = 'Send Now';
+              confirmBtn.disabled = false;
+              dropdown.classList.remove('active');
+            }, 2000);
+          } else {
+            dropdown.classList.remove('active');
+          }
+
+          await loadInvoices();
+        });
+
+        dropdown.appendChild(smsRow);
+        dropdown.appendChild(emailRow);
+        dropdown.appendChild(previewRow);
+        dropdown.appendChild(confirmBtn);
+        sendWrap.appendChild(sendBtn);
+        sendWrap.appendChild(dropdown);
+        tdActions.appendChild(sendWrap);
 
         tr.appendChild(tdNum);
         tr.appendChild(tdStudent);
